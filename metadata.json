@@ -1,0 +1,5 @@
+{
+  "name": "TimeSync Pro",
+  "description": "A collaborative time tracking application with role-based access, dashboard analytics, and export capabilities.",
+  "requestFramePermissions": []
+}
