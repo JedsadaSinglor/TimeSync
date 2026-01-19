@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Category, TimeLog, User, RecurringTask, Team, UserRole } from '../types';
 import { INITIAL_CATEGORIES, MOCK_LOGS, INITIAL_USERS, INITIAL_TEAMS } from '../constants';
-import { saveToLocalStorage, loadFromLocalStorage } from '../utils/storage';
+import { saveToLocalStorage, loadFromLocalStorage, getLocalDateStr } from '../utils/storage';
 
 interface AppContextType {
   currentUser: User;
@@ -24,7 +24,7 @@ interface AppContextType {
   deleteCategory: (id: string) => void;
   addRecurringTask: (task: RecurringTask) => void;
   deleteRecurringTask: (id: string) => void;
-  applyRecurringTasks: (startDate: Date, endDate: Date) => number;
+  applyRecurringTasks: (startDate: Date, endDate: Date, specificTasks?: RecurringTask[]) => number;
   createTeam: (name: string) => void;
   joinTeam: (code: string) => boolean;
   deleteTeam: (id: string) => void;
@@ -165,52 +165,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRecurringTasks(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const applyRecurringTasks = useCallback((startDate: Date, endDate: Date): number => {
-    let addedCount = 0;
+  const applyRecurringTasks = useCallback((startDate: Date, endDate: Date, specificTasks?: RecurringTask[]): number => {
+    const newLogs: TimeLog[] = [];
+    // Use specific tasks if provided, otherwise filter from state
+    const sourceTasks = specificTasks ? specificTasks : recurringTasks;
+    const myTasks = sourceTasks.filter(t => t.userId === currentUser.id);
     
-    setLogs(prevLogs => {
-        const newLogs: TimeLog[] = [];
-        const myTasks = recurringTasks.filter(t => t.userId === currentUser.id);
-        
-        if (myTasks.length === 0) return prevLogs;
+    if (myTasks.length === 0) return 0;
 
-        const start = new Date(startDate); start.setHours(0,0,0,0);
-        const end = new Date(endDate); end.setHours(23,59,59,999);
+    const start = new Date(startDate); 
+    const end = new Date(endDate); 
+    
+    // Normalize to start of day for loop control
+    start.setHours(0,0,0,0);
+    end.setHours(23,59,59,999);
 
-        const loop = new Date(start);
-        while (loop <= end) {
-        const dateStr = loop.toISOString().split('T')[0];
-        const dayOfWeek = loop.getDay(); 
-        const dayOfMonth = loop.getDate();
+    const loop = new Date(start);
+    while (loop <= end) {
+      const dateStr = getLocalDateStr(loop);
+      const dayOfWeek = loop.getDay(); 
+      const dayOfMonth = loop.getDate();
 
-        myTasks.forEach(task => {
-            let shouldApply = false;
+      myTasks.forEach(task => {
+        let shouldApply = false;
 
-            if (task.frequency === 'DAILY') {
-                if (dayOfWeek !== 0 && dayOfWeek !== 6) shouldApply = true;
-            } else if (task.frequency === 'WEEKLY') {
-                if (task.weekDays?.includes(dayOfWeek)) shouldApply = true;
-            } else if (task.frequency === 'MONTHLY') {
-                if (task.dayOfMonth === dayOfMonth) shouldApply = true;
-            }
+        if (task.frequency === 'DAILY') {
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) shouldApply = true;
+        } else if (task.frequency === 'WEEKLY') {
+            if (task.weekDays?.includes(dayOfWeek)) shouldApply = true;
+        } else if (task.frequency === 'MONTHLY') {
+            if (task.dayOfMonth === dayOfMonth) shouldApply = true;
+        }
 
-            if (shouldApply) {
-            const lookupSubId = task.subCategoryId || 'general';
-            
-            const exists = prevLogs.some(l => 
-                l.date === dateStr &&
-                l.categoryId === task.categoryId &&
-                (l.subCategoryId === lookupSubId || (!l.subCategoryId && lookupSubId === 'general'))
-            );
-            
-            const existsInBatch = newLogs.some(l => 
-                l.date === dateStr && 
-                l.categoryId === task.categoryId && 
-                l.subCategoryId === task.subCategoryId
-            );
+        if (shouldApply) {
+          const lookupSubId = task.subCategoryId || 'general';
+          
+          // CRITICAL FIX: Added userId check to prevent false positives from other users' logs
+          const exists = logs.some(l => 
+              l.userId === currentUser.id &&
+              l.date === dateStr &&
+              l.categoryId === task.categoryId &&
+              (l.subCategoryId === lookupSubId || (!l.subCategoryId && lookupSubId === 'general'))
+          );
+          
+          const existsInBatch = newLogs.some(l => 
+              l.date === dateStr && 
+              l.categoryId === task.categoryId && 
+              l.subCategoryId === task.subCategoryId
+          );
 
-            if (!exists && !existsInBatch) {
-                newLogs.push({
+          if (!exists && !existsInBatch) {
+              newLogs.push({
                 id: `log_auto_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
                 userId: currentUser.id,
                 date: dateStr,
@@ -221,23 +226,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 durationMinutes: task.durationMinutes,
                 count: task.count,
                 notes: task.notes || 'Recurring Task'
-                });
-            }
-            }
-        });
+              });
+          }
+        }
+      });
 
-        loop.setDate(loop.getDate() + 1);
-        }
-        
-        addedCount = newLogs.length;
-        if (newLogs.length > 0) {
-           return [...prevLogs, ...newLogs];
-        }
-        return prevLogs;
-    });
+      loop.setDate(loop.getDate() + 1);
+    }
     
-    return addedCount;
-  }, [currentUser, recurringTasks]);
+    if (newLogs.length > 0) {
+       setLogs(prev => [...prev, ...newLogs]);
+    }
+    
+    return newLogs.length;
+  }, [currentUser, recurringTasks, logs]);
 
   // Team Management
   const createTeam = useCallback((name: string) => {
