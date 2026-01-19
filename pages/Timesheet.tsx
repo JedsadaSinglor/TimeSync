@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useApp } from '../contexts/AppContext';
 import { useToast } from '../contexts/ToastContext';
 import { TimeLog, Category, SubCategory, RecurringTask, RecurrenceFrequency } from '../types';
-import { ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, List, Grid3X3, MessageSquare, Download, Upload, LayoutGrid, Repeat, CalendarClock, Sparkles, Eraser, AlertTriangle, Filter, CheckSquare, Square, Eye, EyeOff, ChevronDown, ChevronRight as ChevronIcon, Hash, Calculator, Clock, PlayCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, List, Grid3X3, MessageSquare, Download, Upload, LayoutGrid, Repeat, CalendarClock, Sparkles, Eraser, AlertTriangle, Filter, CheckSquare, Square, Eye, EyeOff, ChevronDown, ChevronRight as ChevronIcon, Hash, Calculator, Clock, PlayCircle, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getLocalDateStr } from '../utils/storage';
 
@@ -517,76 +517,114 @@ const RecurringTasksModal: React.FC<{ isOpen: boolean; onClose: () => void; cate
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-800 animate-scale-up overflow-hidden flex flex-col max-h-[90vh]">
-               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-                   <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2"><Repeat size={20} className="text-indigo-500"/> Recurring Tasks</h3>
-                   <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><X size={20}/></button>
+               {/* Modal Header */}
+               <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 sticky top-0 z-10">
+                   <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400">
+                             <Repeat size={20} />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 dark:text-white">Recurring Tasks</h3>
+                   </div>
+                   <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X size={20}/></button>
                </div>
                
-               <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
-                   <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-6">
-                      <h4 className="font-bold text-slate-800 dark:text-white text-sm uppercase tracking-wider flex items-center gap-2">
-                          <Plus size={16} className="text-indigo-500" /> Create New Routine
-                      </h4>
+               <div className="p-6 overflow-y-auto custom-scrollbar space-y-8 bg-slate-50/50 dark:bg-slate-900/50">
+                   {/* CREATE SECTION */}
+                   <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm space-y-6">
+                      <div className="flex items-center gap-2 mb-2">
+                          <Plus size={16} className="text-indigo-500" strokeWidth={3} />
+                          <h4 className="font-bold text-slate-800 dark:text-white text-sm uppercase tracking-wider">Create New Routine</h4>
+                      </div>
+
+                      {/* Row 1: Category & Subcategory */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                           <div>
-                              <label className="text-xs font-bold text-slate-400 mb-2 block uppercase tracking-wider">Category</label>
-                              <select className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 transition-all" value={catId} onChange={e => { setCatId(e.target.value); setSubId(''); }}>
-                                  <option value="">Select Category</option>
-                                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                              </select>
+                           <div className="space-y-2">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">Category</label>
+                              <div className="relative">
+                                <select className="w-full p-3.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all appearance-none" value={catId} onChange={e => { setCatId(e.target.value); setSubId(''); }}>
+                                    <option value="">Select Category</option>
+                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                                <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={16} />
+                              </div>
                            </div>
-                           <div>
-                              <label className="text-xs font-bold text-slate-400 mb-2 block uppercase tracking-wider">Sub-Category</label>
-                              <select className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold outline-none disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-slate-800 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/20 transition-all" value={subId} onChange={e => { setSubId(e.target.value); }} disabled={!catId}>
-                                  <option value="">General</option>
-                                  {selectedCategory?.subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                              </select>
+                           <div className="space-y-2">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">Sub-Category</label>
+                              <div className="relative">
+                                <select className="w-full p-3.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-bold outline-none disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all appearance-none" value={subId} onChange={e => { setSubId(e.target.value); }} disabled={!catId}>
+                                    <option value="">General</option>
+                                    {selectedCategory?.subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                                <ChevronDown className="absolute right-4 top-4 text-slate-400 pointer-events-none" size={16} />
+                              </div>
                            </div>
                       </div>
   
+                      {/* Row 2: Frequency & Input */}
                       <div className="flex flex-col md:flex-row gap-5">
-                          <div className="flex-1">
-                              <label className="text-xs font-bold text-slate-400 mb-2 block uppercase tracking-wider">Frequency</label>
-                              <div className="flex bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-1.5 shadow-sm">
+                          <div className="flex-1 space-y-2">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">Frequency</label>
+                              <div className="flex bg-slate-100 dark:bg-slate-900 rounded-xl p-1.5 border border-slate-200 dark:border-slate-700">
                                   {(['DAILY', 'WEEKLY', 'MONTHLY'] as RecurrenceFrequency[]).map(f => (
-                                      <button key={f} onClick={() => setFrequency(f)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${frequency === f ? 'bg-slate-900 text-white dark:bg-indigo-600 shadow-md' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                                      <button 
+                                        key={f} 
+                                        onClick={() => setFrequency(f)} 
+                                        className={`flex-1 py-2 text-[11px] font-black rounded-lg transition-all uppercase tracking-wide ${frequency === f ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                      >
                                           {f}
                                       </button>
                                   ))}
                               </div>
                           </div>
-                          <div className="w-full md:w-56">
-                              <label className={`text-xs font-bold mb-2 block uppercase tracking-wider transition-colors flex items-center gap-1.5 ${isQtyBased ? 'text-blue-500' : 'text-slate-400'}`}>
-                                  {isQtyBased ? <><Hash size={14}/> Quantity (Items)</> : <><Clock size={14}/> Duration (Minutes)</>}
+                          <div className="w-full md:w-56 space-y-2">
+                              <label className={`text-[11px] font-bold uppercase tracking-wider pl-1 flex items-center gap-1.5 transition-colors ${isQtyBased ? 'text-blue-500' : 'text-slate-400'}`}>
+                                  {isQtyBased ? <><Hash size={12}/> Quantity (Items)</> : <><Clock size={12}/> Duration (Minutes)</>}
                               </label>
                               <div className="relative group">
                                   <input 
                                       type="number" 
                                       value={inputValue} 
                                       onChange={e => setInputValue(Number(e.target.value))} 
-                                      className={`w-full p-3 pl-4 pr-12 rounded-xl border bg-white dark:bg-slate-900 text-sm font-black outline-none focus:ring-4 transition-all ${isQtyBased ? 'border-blue-200 dark:border-blue-900 text-blue-600 focus:ring-blue-100' : 'border-slate-200 dark:border-slate-700 focus:ring-slate-100'}`} 
+                                      className={`w-full p-3.5 pl-4 pr-12 rounded-xl border-2 bg-slate-50 dark:bg-slate-900 text-sm font-black outline-none focus:ring-4 transition-all ${isQtyBased ? 'border-blue-100 dark:border-blue-900/50 text-blue-600 focus:border-blue-500 focus:ring-blue-500/10' : 'border-slate-100 dark:border-slate-700 focus:border-indigo-500 focus:ring-indigo-500/10 text-slate-800 dark:text-white'}`} 
                                       min="0" 
                                       step={isQtyBased ? "1" : "15"} 
+                                      placeholder={isQtyBased ? "Qty" : "Mins"}
                                   />
-                                  <div className={`absolute right-4 top-3 pointer-events-none transition-colors ${isQtyBased ? 'text-blue-400' : 'text-slate-300'}`}>
+                                  <div className={`absolute right-4 top-3.5 pointer-events-none transition-colors ${isQtyBased ? 'text-blue-400' : 'text-slate-300'}`}>
                                      {isQtyBased ? <Hash size={18} /> : <Clock size={18} />}
                                   </div>
                               </div>
-                              {isQtyBased && unitMinutes > 0 && (
-                                  <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-medium bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 text-blue-700 dark:text-blue-300">
-                                      <div className="flex items-center gap-1"><Calculator size={10} /> Calculation:</div>
-                                      <div><span className="font-bold">{inputValue}</span> x {unitMinutes}m = <span className="font-black bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-800">{inputValue * unitMinutes}m</span></div>
-                                  </div>
-                              )}
                           </div>
                       </div>
+
+                       {/* Calculation Helper for Quantity Mode */}
+                       {isQtyBased && unitMinutes > 0 && (
+                          <div className="animate-fade-in -mt-2">
+                              <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 text-xs">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
+                                      <Calculator size={16} />
+                                  </div>
+                                  <div className="text-blue-800 dark:text-blue-200">
+                                      <span className="font-medium opacity-70 block text-[10px] uppercase tracking-wider">Total Time Estimate</span>
+                                      <div className="font-bold flex items-center gap-1.5 mt-0.5">
+                                          <span className="bg-white dark:bg-slate-900 px-1.5 rounded border border-blue-100 dark:border-blue-800/50">{inputValue} items</span> 
+                                          <span className="opacity-50">×</span>
+                                          <span>{unitMinutes}m</span>
+                                          <span className="opacity-50">=</span>
+                                          <span className="text-lg">{inputValue * unitMinutes} min</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                       )}
                       
+                      {/* Active Days Selector */}
                       {frequency === 'WEEKLY' && (
-                           <div className="animate-fade-in">
-                              <label className="text-xs font-bold text-slate-400 mb-2 block uppercase tracking-wider">Active Days</label>
-                              <div className="flex gap-2">
+                           <div className="animate-fade-in space-y-2 pt-2">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">Active Days</label>
+                              <div className="flex flex-wrap gap-2">
                                   {['S','M','T','W','T','F','S'].map((d, i) => (
-                                      <button key={i} onClick={() => toggleDay(i)} className={`w-10 h-10 rounded-xl text-xs font-bold transition-all border flex items-center justify-center ${selectedDays.includes(i) ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none scale-110' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'}`}>
+                                      <button key={i} onClick={() => toggleDay(i)} className={`w-10 h-10 rounded-full text-xs font-bold transition-all border flex items-center justify-center ${selectedDays.includes(i) ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none scale-105' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-indigo-300 hover:text-indigo-500'}`}>
                                           {d}
                                       </button>
                                   ))}
@@ -594,20 +632,21 @@ const RecurringTasksModal: React.FC<{ isOpen: boolean; onClose: () => void; cate
                            </div>
                       )}
   
-                      <button onClick={handleAdd} disabled={!catId || (frequency === 'WEEKLY' && selectedDays.length === 0)} className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white font-bold rounded-2xl hover:bg-black dark:hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-slate-200 dark:shadow-none transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
+                      <button onClick={handleAdd} disabled={!catId || (frequency === 'WEEKLY' && selectedDays.length === 0)} className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white font-bold rounded-2xl hover:bg-slate-800 dark:hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-slate-200 dark:shadow-none transition-all hover:-translate-y-1 flex items-center justify-center gap-2 mt-4">
                           <Plus size={18} strokeWidth={3} /> Add Routine to Schedule
                       </button>
                    </div>
   
-                   <div className="space-y-4">
-                       <h4 className="font-bold text-slate-400 text-xs uppercase tracking-wider flex items-center justify-between">
+                   {/* LIST SECTION */}
+                   <div className="space-y-4 pt-2">
+                       <h4 className="font-bold text-slate-400 text-xs uppercase tracking-wider flex items-center justify-between px-1">
                            <span>Active Routines</span>
-                           <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-black">{myTasks.length}</span>
+                           <span className="bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-black border border-slate-100 dark:border-slate-700">{myTasks.length}</span>
                        </h4>
                        
                        <div className="space-y-3">
                            {myTasks.length === 0 && (
-                               <div className="text-center py-12 text-slate-400 text-sm border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/50 flex flex-col items-center gap-3">
+                               <div className="text-center py-12 text-slate-400 text-sm border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white/50 dark:bg-slate-800/30 flex flex-col items-center gap-3">
                                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-300">
                                        <CalendarClock size={24} />
                                    </div>
@@ -620,25 +659,25 @@ const RecurringTasksModal: React.FC<{ isOpen: boolean; onClose: () => void; cate
                                const isQty = (sub?.minutes || 0) > 0;
 
                                return (
-                                   <div key={task.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-                                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-200 dark:bg-slate-800" style={{backgroundColor: cat?.color}}></div>
-                                       <div className="flex items-center gap-4 pl-2">
-                                           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 font-bold text-xs bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                   <div key={task.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                                       <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{backgroundColor: cat?.color}}></div>
+                                       <div className="flex items-center gap-4 pl-3">
+                                           <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-slate-500 font-bold text-xs bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50">
                                                {task.frequency[0]}
                                            </div>
                                            <div>
                                                <div className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
                                                    {cat?.name} <ChevronIcon size={12} className="text-slate-300" /> <span className="text-slate-600 dark:text-slate-300">{sub?.name || 'General'}</span>
                                                </div>
-                                               <div className="text-xs text-slate-500 dark:text-slate-400 flex gap-3 items-center mt-1">
+                                               <div className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-2 items-center mt-1.5">
                                                    {isQty ? (
-                                                        <span className="font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md flex items-center gap-1 border border-blue-100 dark:border-blue-900/50"><Hash size={10} /> {task.count} items</span>
+                                                        <span className="font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md flex items-center gap-1.5 border border-blue-100 dark:border-blue-900/50"><Hash size={11} /> {task.count} items</span>
                                                    ) : (
-                                                        <span className="font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md flex items-center gap-1 text-slate-600 dark:text-slate-300"><Clock size={10} /> {task.durationMinutes} min</span>
+                                                        <span className="font-bold bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md flex items-center gap-1.5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"><Clock size={11} /> {task.durationMinutes} min</span>
                                                    )}
                                                    {task.frequency === 'WEEKLY' && task.weekDays && (
-                                                       <span className="text-[10px] text-indigo-500 font-bold bg-indigo-50 dark:bg-indigo-900/20 px-1.5 py-0.5 rounded">
-                                                           {task.weekDays.map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')}
+                                                       <span className="text-[10px] text-indigo-500 font-bold bg-indigo-50 dark:bg-indigo-900/20 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/30">
+                                                           {task.weekDays.map(d => ['Su','Mo','Tu','We','Th','Fr','Sa'][d]).join(' ')}
                                                        </span>
                                                    )}
                                                </div>
