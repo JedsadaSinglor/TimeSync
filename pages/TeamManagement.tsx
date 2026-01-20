@@ -1,3 +1,3 @@
 
-// This file is unused and has been cleared to improve performance.
+// This file is unused and can be safely deleted.
 export default () => null;

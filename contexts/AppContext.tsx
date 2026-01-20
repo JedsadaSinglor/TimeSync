@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Category, TimeLog, User, RecurringTask, Team, UserRole } from '../types';
+import { Category, TimeLog, User, RecurringTask, Team, UserRole, DayConfig } from '../types';
 import { INITIAL_CATEGORIES, MOCK_LOGS, INITIAL_USERS, INITIAL_TEAMS } from '../constants';
 import { saveToLocalStorage, loadFromLocalStorage, getLocalDateStr } from '../utils/storage';
 
@@ -11,6 +11,7 @@ interface AppContextType {
   logs: TimeLog[];
   recurringTasks: RecurringTask[];
   teams: Team[];
+  dayConfigs: DayConfig[];
   setCurrentUser: (user: User) => void;
   updateUser: (user: User) => void;
   addUser: (user: User) => void;
@@ -28,6 +29,7 @@ interface AppContextType {
   createTeam: (name: string) => void;
   joinTeam: (code: string) => boolean;
   deleteTeam: (id: string) => void;
+  updateDayConfig: (config: DayConfig) => void;
   resetData: () => void;
   resetTimesheet: () => void;
 }
@@ -71,6 +73,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadFromLocalStorage('teams', INITIAL_TEAMS)
   );
 
+  const [dayConfigs, setDayConfigs] = useState<DayConfig[]>(() => 
+    loadFromLocalStorage('dayConfigs', [])
+  );
+
   // Debounce storage writes
   useDebouncedEffect(() => {
     saveToLocalStorage('users', users);
@@ -102,6 +108,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useDebouncedEffect(() => {
     saveToLocalStorage('teams', teams);
   }, [teams], 1000);
+
+  useDebouncedEffect(() => {
+    saveToLocalStorage('dayConfigs', dayConfigs);
+  }, [dayConfigs], 1000);
 
 
   const updateUser = useCallback((updatedUser: User) => {
@@ -187,6 +197,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const dayOfMonth = loop.getDate();
 
       myTasks.forEach(task => {
+        // Date Range Check
+        if (task.startDate && dateStr < task.startDate) return;
+        if (task.endDate && dateStr > task.endDate) return;
+
         let shouldApply = false;
 
         if (task.frequency === 'DAILY') {
@@ -240,6 +254,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     return newLogs.length;
   }, [currentUser, recurringTasks, logs]);
+
+  // Day Config Management
+  const updateDayConfig = useCallback((config: DayConfig) => {
+    setDayConfigs(prev => {
+        const existingIndex = prev.findIndex(d => d.date === config.date && d.userId === config.userId);
+        if (existingIndex >= 0) {
+            const newConfigs = [...prev];
+            newConfigs[existingIndex] = { ...newConfigs[existingIndex], ...config };
+            return newConfigs;
+        } else {
+            return [...prev, config];
+        }
+    });
+  }, []);
 
   // Team Management
   const createTeam = useCallback((name: string) => {
@@ -302,6 +330,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCategories([]);
     setRecurringTasks([]);
     setTeams([]);
+    setDayConfigs([]);
     
     // Clean up user team associations
     setUsers(prevUsers => prevUsers.map(u => ({
@@ -319,6 +348,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const resetTimesheet = useCallback(() => {
     setLogs([]);
+    setDayConfigs([]);
   }, []);
 
   const contextValue = useMemo(() => ({
@@ -328,6 +358,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logs,
     teams,
     recurringTasks,
+    dayConfigs,
     setCurrentUser,
     updateUser,
     addUser,
@@ -345,14 +376,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     createTeam,
     joinTeam,
     deleteTeam,
+    updateDayConfig,
     resetData,
     resetTimesheet
   }), [
-    currentUser, users, categories, logs, recurringTasks, teams,
+    currentUser, users, categories, logs, recurringTasks, teams, dayConfigs,
     updateUser, addUser, deleteUser, login, addLog, updateLog, deleteLog,
     addCategory, updateCategory, deleteCategory,
     addRecurringTask, deleteRecurringTask, applyRecurringTasks,
-    createTeam, joinTeam, deleteTeam,
+    createTeam, joinTeam, deleteTeam, updateDayConfig,
     resetData, resetTimesheet
   ]);
 

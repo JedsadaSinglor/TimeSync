@@ -61,9 +61,23 @@ export interface RecurringTask {
   frequency: RecurrenceFrequency;
   weekDays?: number[]; // 0-6 for Sunday-Saturday (used for WEEKLY)
   dayOfMonth?: number; // 1-31 (used for MONTHLY)
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
   durationMinutes: number;
   count?: number;
   notes: string;
+}
+
+export type WorkLocation = 'WFO' | 'WFH' | 'SITE' | 'OTHER';
+
+export interface DayConfig {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  workLocation?: WorkLocation;
+  isHoliday?: boolean;
+  holidayName?: string;
+  isWorkingDay?: boolean; // Specifically for overriding weekends
 }
 
 export interface AppState {
@@ -72,4 +86,5 @@ export interface AppState {
   logs: TimeLog[];
   recurringTasks: RecurringTask[];
   teams: Team[];
+  dayConfigs: DayConfig[];
 }

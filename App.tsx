@@ -1,3 +1,4 @@
+
 import React, { ErrorInfo, ReactNode } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
@@ -9,7 +10,7 @@ import { AlertTriangle } from 'lucide-react';
 // Static imports to ensure reliable loading
 import Dashboard from './pages/Dashboard';
 import Timesheet from './pages/Timesheet';
-import CategoryManagement from './pages/Admin';
+import CategoryManagement from './pages/Categories';
 import Help from './pages/Help';
 
 interface ErrorBoundaryProps {
