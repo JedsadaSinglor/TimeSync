@@ -130,33 +130,33 @@ export const CategoryCard: React.FC<{
 
   if (isEditing) {
       return (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border-2 border-indigo-500 p-5 space-y-4 animate-scale-up relative z-10">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-indigo-200 dark:border-indigo-500/30 p-5 space-y-5 animate-scale-up relative z-10">
               <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Category Name</label>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2 block">Category Name</label>
                   <input 
                     autoFocus 
-                    className="w-full text-lg font-bold border-b border-slate-200 dark:border-slate-700 bg-transparent py-1 outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+                    className="w-full text-sm font-bold border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 dark:text-white transition-all"
                     value={editName}
                     onChange={e => setEditName(e.target.value)}
                   />
               </div>
               <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400 mb-2 block">Color Tag</label>
-                  <div className="flex flex-wrap gap-2">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-3 block">Color Tag</label>
+                  <div className="flex flex-wrap gap-2.5">
                     {PRESET_COLORS.map(c => (
                         <button
                             key={c}
                             type="button"
                             onClick={() => setEditColor(c)}
-                            className={`w-6 h-6 rounded-full transition-transform ${editColor === c ? 'scale-125 ring-2 ring-offset-2 ring-slate-400 dark:ring-slate-500' : 'hover:scale-110'}`}
+                            className={`w-6 h-6 rounded-full transition-all ${editColor === c ? 'scale-125 ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-slate-900 shadow-sm' : 'hover:scale-110 opacity-70 hover:opacity-100'}`}
                             style={{backgroundColor: c}}
                         />
                     ))}
                   </div>
               </div>
-              <div className="flex gap-2 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
-                  <button onClick={saveCategoryEdit} className="px-4 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none">Save Changes</button>
+              <div className="flex gap-2 justify-end pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+                  <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Cancel</button>
+                  <button onClick={saveCategoryEdit} className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-sm transition-all active:scale-95">Save Changes</button>
               </div>
           </div>
       )

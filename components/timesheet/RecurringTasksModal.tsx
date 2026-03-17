@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Repeat, Plus, Trash2, Calendar, Check, Clock, CalendarDays, ArrowRight } from 'lucide-react';
+import { X, Repeat, Plus, Trash2, Calendar, Check, Clock, CalendarDays, ArrowRight, Bookmark } from 'lucide-react';
 import { Category, RecurringTask, RecurrenceFrequency } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 
@@ -12,12 +12,14 @@ interface RecurringTasksModalProps {
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const RecurringTasksModal: React.FC<RecurringTasksModalProps> = ({ isOpen, onClose, categories }) => {
-  const { recurringTasks, addRecurringTask, deleteRecurringTask, currentUser } = useApp();
+  const { recurringTasks, addRecurringTask, deleteRecurringTask, currentUser, categoryCombos } = useApp();
   const [activeTab, setActiveTab] = useState<'LIST' | 'NEW'>('LIST');
+  const [creationMode, setCreationMode] = useState<'SINGLE' | 'COMBO'>('SINGLE');
   
   // Form State
   const [catId, setCatId] = useState('');
   const [subId, setSubId] = useState('');
+  const [selectedComboId, setSelectedComboId] = useState('');
   const [frequency, setFrequency] = useState<RecurrenceFrequency>('DAILY');
   const [count, setCount] = useState<number>(1);
   const [weekDays, setWeekDays] = useState<number[]>([1, 2, 3, 4, 5]); // Default Mon-Fri
@@ -30,14 +32,16 @@ export const RecurringTasksModal: React.FC<RecurringTasksModalProps> = ({ isOpen
     if (isOpen) {
         setCatId(categories[0]?.id || '');
         setSubId('');
+        setSelectedComboId(categoryCombos[0]?.id || '');
         setActiveTab('LIST');
+        setCreationMode('SINGLE');
         setWeekDays([1, 2, 3, 4, 5]);
         setDayOfMonth(1);
         setStartDate(new Date().toISOString().split('T')[0]);
         setEndDate('');
         setCount(1);
     }
-  }, [isOpen, categories]);
+  }, [isOpen, categories, categoryCombos]);
 
   if (!isOpen) return null;
 
@@ -51,24 +55,47 @@ export const RecurringTasksModal: React.FC<RecurringTasksModalProps> = ({ isOpen
 
   const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!catId) return;
       
-      const newTask: RecurringTask = {
-          id: `rt_${Date.now()}`,
-          userId: currentUser.id,
-          categoryId: catId,
-          subCategoryId: subId || 'general',
-          frequency,
-          weekDays: frequency === 'WEEKLY' ? weekDays : undefined,
-          dayOfMonth: frequency === 'MONTHLY' ? dayOfMonth : undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          durationMinutes: 0,
-          count: count,
-          notes: ''
-      };
+      if (creationMode === 'SINGLE') {
+          if (!catId) return;
+          const newTask: RecurringTask = {
+              id: `rt_${Date.now()}`,
+              userId: currentUser.id,
+              categoryId: catId,
+              subCategoryId: subId || 'general',
+              frequency,
+              weekDays: frequency === 'WEEKLY' ? weekDays : undefined,
+              dayOfMonth: frequency === 'MONTHLY' ? dayOfMonth : undefined,
+              startDate: startDate || undefined,
+              endDate: endDate || undefined,
+              durationMinutes: 0,
+              count: count,
+              notes: ''
+          };
+          addRecurringTask(newTask);
+      } else {
+          const combo = categoryCombos.find(c => c.id === selectedComboId);
+          if (!combo) return;
+          
+          combo.items.forEach((item, idx) => {
+              const newTask: RecurringTask = {
+                  id: `rt_${Date.now()}_${idx}`,
+                  userId: currentUser.id,
+                  categoryId: item.categoryId,
+                  subCategoryId: item.subCategoryId || 'general',
+                  frequency,
+                  weekDays: frequency === 'WEEKLY' ? weekDays : undefined,
+                  dayOfMonth: frequency === 'MONTHLY' ? dayOfMonth : undefined,
+                  startDate: startDate || undefined,
+                  endDate: endDate || undefined,
+                  durationMinutes: 0,
+                  count: (item.defaultCount || 1) * count,
+                  notes: `From combo: ${combo.name}`
+              };
+              addRecurringTask(newTask);
+          });
+      }
       
-      addRecurringTask(newTask);
       setActiveTab('LIST');
   };
 
@@ -165,22 +192,98 @@ export const RecurringTasksModal: React.FC<RecurringTasksModalProps> = ({ isOpen
                    </div>
                ) : (
                    <form onSubmit={handleSubmit} className="space-y-6">
-                       <div className="grid grid-cols-2 gap-4">
-                           <div className="space-y-2">
-                               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Category</label>
-                               <select value={catId} onChange={e => { setCatId(e.target.value); setSubId(''); }} className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
-                                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                               </select>
-                           </div>
-                           
-                           <div className="space-y-2">
-                               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sub-Category</label>
-                               <select value={subId} onChange={e => setSubId(e.target.value)} className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
-                                   <option value="">General</option>
-                                   {categories.find(c => c.id === catId)?.subCategories.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                               </select>
-                           </div>
+                       {/* Creation Mode Toggle */}
+                       <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                           <button 
+                               type="button"
+                               onClick={() => setCreationMode('SINGLE')}
+                               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${creationMode === 'SINGLE' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                           >
+                               Single Task
+                           </button>
+                           <button 
+                               type="button"
+                               onClick={() => setCreationMode('COMBO')}
+                               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${creationMode === 'COMBO' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                           >
+                               Combo Set
+                           </button>
                        </div>
+
+                       {creationMode === 'SINGLE' ? (
+                           <div className="space-y-6 animate-fade-in">
+                               <div className="space-y-2">
+                                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block pl-1">Category</label>
+                                   <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                                       {categories.map(c => (
+                                           <button
+                                               key={c.id}
+                                               type="button"
+                                               onClick={() => { setCatId(c.id); setSubId(''); }}
+                                               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${catId === c.id ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 shadow-md' : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'}`}
+                                           >
+                                               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }}></div>
+                                               {c.name}
+                                           </button>
+                                       ))}
+                                   </div>
+                               </div>
+                               
+                               {categories.find(c => c.id === catId)?.subCategories && categories.find(c => c.id === catId)!.subCategories.length > 0 && (
+                                   <div className="space-y-2 animate-fade-in">
+                                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 block pl-1">Sub-Category</label>
+                                       <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                                           <button
+                                               type="button"
+                                               onClick={() => setSubId('')}
+                                               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${subId === '' ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/50' : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'}`}
+                                           >
+                                               General
+                                           </button>
+                                           {categories.find(c => c.id === catId)?.subCategories.map(s => (
+                                               <button
+                                                   key={s.id}
+                                                   type="button"
+                                                   onClick={() => setSubId(s.id)}
+                                                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${subId === s.id ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/50' : 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'}`}
+                                               >
+                                                   {s.name}
+                                               </button>
+                                           ))}
+                                       </div>
+                                   </div>
+                               )}
+                           </div>
+                       ) : (
+                           <div className="space-y-2 animate-fade-in">
+                               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Select Combo Set</label>
+                               {categoryCombos.length === 0 ? (
+                                   <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400 text-xs font-medium">
+                                       No combo sets found. Create one in Category Manager first.
+                                   </div>
+                               ) : (
+                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                                       {categoryCombos.map(combo => (
+                                           <div 
+                                               key={combo.id}
+                                               onClick={() => setSelectedComboId(combo.id)}
+                                               className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedComboId === combo.id ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10' : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'}`}
+                                           >
+                                               <div className="flex items-center gap-3 mb-2">
+                                                   <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm shrink-0" style={{ backgroundColor: combo.color || '#6366f1' }}>
+                                                       <Bookmark size={16} />
+                                                   </div>
+                                                   <div className="min-w-0 flex-1">
+                                                       <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate">{combo.name}</h4>
+                                                       <p className="text-xs text-slate-500 dark:text-slate-400">{combo.items.length} items</p>
+                                                   </div>
+                                               </div>
+                                           </div>
+                                       ))}
+                                   </div>
+                               )}
+                           </div>
+                       )}
 
                        <div className="space-y-3 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
@@ -262,7 +365,9 @@ export const RecurringTasksModal: React.FC<RecurringTasksModalProps> = ({ isOpen
                        </div>
 
                        <div className="space-y-2">
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Attempts</label>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                               {creationMode === 'SINGLE' ? 'Attempts' : 'Combo Set Attempts'}
+                           </label>
                            <div className="relative">
                                <Check className="absolute left-3 top-3.5 text-slate-400" size={16} />
                                <input 

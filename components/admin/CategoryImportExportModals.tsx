@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Layers, Upload, FileSpreadsheet, List } from 'lucide-react';
+import { Layers, Upload, FileSpreadsheet, List, Bookmark } from 'lucide-react';
 
 interface ExportModalProps {
     isOpen: boolean;
@@ -9,6 +9,7 @@ interface ExportModalProps {
     summary: {
         categoryCount: number;
         subCategoryCount: number;
+        comboCount: number;
     };
 }
 
@@ -35,6 +36,10 @@ export const CategoryExportModal: React.FC<ExportModalProps> = ({ isOpen, onClos
                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><List size={14}/> Sub-categories</span>
                         <span className="font-bold text-slate-700 dark:text-slate-200">{summary.subCategoryCount}</span>
                     </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Bookmark size={14}/> Category Combos</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{summary.comboCount}</span>
+                    </div>
                 </div>
 
                 <div className="flex gap-3">
@@ -54,6 +59,7 @@ interface ImportModalProps {
     summary: {
         newCategories: number;
         newSubCategories: number;
+        newCombos: number;
     };
 }
 
@@ -79,6 +85,10 @@ export const CategoryImportModal: React.FC<ImportModalProps> = ({ isOpen, onClos
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><List size={14}/> New Sub-categories</span>
                         <span className="font-bold text-slate-700 dark:text-slate-200">{summary.newSubCategories}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Bookmark size={14}/> New Combos</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{summary.newCombos}</span>
                     </div>
                 </div>
 

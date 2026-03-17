@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Layers, LayoutDashboard, Sparkles, HelpCircle, ArrowRight, Download, CalendarClock, Users, Settings, Shield, Zap, Filter } from 'lucide-react';
+import { Clock, Layers, LayoutDashboard, Sparkles, HelpCircle, ArrowRight, Download, CalendarClock, Settings, Shield, Zap, Filter, Bookmark } from 'lucide-react';
 
 const Help: React.FC = () => {
   return (
@@ -27,19 +27,19 @@ const Help: React.FC = () => {
               <Zap className="text-amber-500" size={24} /> Core Features
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Card 1: Timesheet */}
+              {/* Card 1: Smart Grid Timesheet */}
               <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
                  <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform">
                     <Clock size={28} />
                  </div>
                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3">1. Smart Grid Timesheet</h3>
                  <div className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed font-medium space-y-3">
-                     <p>The heart of the application. Switch seamlessly between <strong>Daily, Weekly, and Monthly</strong> views to manage your time at any granularity.</p>
+                     <p>The core engine for logging your work. Choose between <strong>Daily, Weekly, or Monthly</strong> views and toggle between <strong>Table and List</strong> layouts.</p>
                      <ul className="list-disc pl-5 space-y-1">
-                         <li><strong>Rows</strong> represent your customized categories and sub-categories.</li>
-                         <li><strong>Columns</strong> represent dates.</li>
-                         <li><strong>Input Modes:</strong> Enter raw time (in minutes/hours) or quantities (if a category has a predefined time value).</li>
-                         <li><strong>Notes:</strong> Click the small message icon in any cell to add detailed notes for that specific entry.</li>
+                         <li><strong>Flexible Layouts:</strong> Use the Table view for high-density data entry or the List view for a more focused, chronological stream.</li>
+                         <li><strong>Input Modes:</strong> Enter raw time or quantities. The system automatically calculates totals based on your category settings.</li>
+                         <li><strong>Rich Notes:</strong> Add context to any entry by clicking the message icon. Notes are visible in both the timesheet and the dashboard activity feed.</li>
+                         <li><strong>Keyboard Shortcuts:</strong> Tab through cells for rapid data entry across multiple days.</li>
                      </ul>
                  </div>
                  <Link to="/timesheet" className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/10 px-4 py-2 rounded-xl transition-colors">
@@ -71,18 +71,18 @@ const Help: React.FC = () => {
                  <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform">
                     <LayoutDashboard size={28} />
                  </div>
-                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3">3. Analytics Dashboard</h3>
+                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3">3. Dynamic Analytics</h3>
                  <div className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed font-medium space-y-3">
-                     <p>Visualize your productivity patterns with interactive, real-time charts.</p>
+                     <p>A fully customizable workspace to visualize your productivity patterns in real-time.</p>
                      <ul className="list-disc pl-5 space-y-1">
-                         <li><strong>Key Metrics:</strong> Track Total Hours, Daily Averages, and identify your Top Categories.</li>
-                         <li><strong>Trend Analysis:</strong> Compare current performance against previous periods (e.g., this week vs last week).</li>
-                         <li><strong>Deep Dives:</strong> Filter charts by specific categories or sub-categories to analyze specific areas of your work.</li>
-                         <li><strong>Export:</strong> Download your filtered dashboard data as a CSV for external reporting.</li>
+                         <li><strong>Custom Layouts:</strong> Click "Customize" to drag, resize, and reorder widgets to fit your specific needs.</li>
+                         <li><strong>Widget Library:</strong> Add new components like Peak Hours, Weekly Rhythm, or Work Locations from the widget menu.</li>
+                         <li><strong>Consolidated Controls:</strong> Use the sticky control bar to instantly filter by time range or specific categories across all charts.</li>
+                         <li><strong>Quick Stats:</strong> Get an immediate snapshot of your total hours, daily averages, and top focus at the top of your dashboard.</li>
                      </ul>
                  </div>
                  <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 px-4 py-2 rounded-xl transition-colors">
-                    View Stats <ArrowRight size={16} />
+                    Explore Dashboard <ArrowRight size={16} />
                  </Link>
               </div>
 
@@ -112,7 +112,7 @@ const Help: React.FC = () => {
           <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 px-2">
               <Shield className="text-indigo-500" size={24} /> Advanced Capabilities
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
                       <div className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl"><Settings size={20} /></div>
@@ -125,21 +125,21 @@ const Help: React.FC = () => {
               
               <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-xl"><Users size={20} /></div>
-                      <h4 className="font-bold text-slate-800 dark:text-white">Team Management</h4>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                      (Admin/Leader feature) Create teams, generate join codes, and view aggregated performance metrics for your entire team on the Dashboard.
-                  </p>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
                       <div className="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl"><Filter size={20} /></div>
                       <h4 className="font-bold text-slate-800 dark:text-white">Advanced Filtering</h4>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                       Use the filter menu in the timesheet to hide irrelevant categories or sub-categories, keeping your workspace clean and focused on current tasks.
+                  </p>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl"><Bookmark size={20} /></div>
+                      <h4 className="font-bold text-slate-800 dark:text-white">Category Combos</h4>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                      Create "Combos" for frequently used category and sub-category pairs. This allows for one-click logging and better organization of your most common activities.
                   </p>
               </div>
           </div>

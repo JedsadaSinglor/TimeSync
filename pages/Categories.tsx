@@ -2,17 +2,18 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import { Category } from '../types';
-import { Plus, X, Upload, Download, Layers, Search, Check } from 'lucide-react';
+import { Category, CategoryCombo } from '../types';
+import { Plus, X, Upload, Download, Layers, Search, Check, Bookmark } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { CategoryCard, PRESET_COLORS } from '../components/admin/CategoryCard';
 import { EmptyState } from '../components/ui/EmptyState';
 import { CategoryExportModal, CategoryImportModal } from '../components/admin/CategoryImportExportModals';
+import { CategoryComboManager } from '../components/admin/CategoryComboManager';
 
 const ITEMS_PER_PAGE = 9;
 
 const CategoryManagement: React.FC = () => {
-  const { categories, addCategory, updateCategory, deleteCategory } = useApp(); 
+  const { categories, addCategory, updateCategory, deleteCategory, categoryCombos, addCategoryCombo, updateCategoryCombo, currentUser } = useApp(); 
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,9 +22,11 @@ const CategoryManagement: React.FC = () => {
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [exportSummary, setExportSummary] = useState<{ categoryCount: number, subCategoryCount: number } | null>(null);
-  const [importSummary, setImportSummary] = useState<{ newCategories: number, newSubCategories: number } | null>(null);
+  const [isComboModalOpen, setIsComboModalOpen] = useState(false);
+  const [exportSummary, setExportSummary] = useState<{ categoryCount: number, subCategoryCount: number, comboCount: number } | null>(null);
+  const [importSummary, setImportSummary] = useState<{ newCategories: number, newSubCategories: number, newCombos: number } | null>(null);
   const [pendingCategories, setPendingCategories] = useState<Category[] | null>(null);
+  const [pendingCombos, setPendingCombos] = useState<CategoryCombo[] | null>(null);
 
   useEffect(() => setCurrentPage(1), [searchTerm]);
 
@@ -60,29 +63,56 @@ const CategoryManagement: React.FC = () => {
       const subCount = filteredCategories.reduce((acc, c) => acc + c.subCategories.length, 0);
       setExportSummary({
           categoryCount: filteredCategories.length,
-          subCategoryCount: subCount
+          subCategoryCount: subCount,
+          comboCount: categoryCombos.length
       });
   };
 
   const confirmExport = () => {
-      const data = filteredCategories.flatMap(c => {
+      // Categories Sheet
+      const catData = filteredCategories.flatMap(c => {
           if (c.subCategories.length === 0) {
               return [{
                   Name: c.name,
                   SubCategories: '',
-                  Time: 0
+                  Time: 0,
+                  Color: c.color
               }];
           }
           return c.subCategories.map(s => ({
               Name: c.name,
               SubCategories: s.name,
-              Time: s.minutes || 0
+              Time: s.minutes || 0,
+              Color: c.color
           }));
       });
-      const ws = XLSX.utils.json_to_sheet(data);
+
+      // Combos Sheet
+      const comboData = categoryCombos.flatMap(combo => {
+          return combo.items.map(item => {
+              const cat = categories.find(c => c.id === item.categoryId);
+              const sub = cat?.subCategories.find(s => s.id === item.subCategoryId);
+              return {
+                  ComboName: combo.name,
+                  ComboColor: combo.color,
+                  Category: cat?.name || 'Unknown',
+                  SubCategory: sub?.name || '',
+                  DefaultCount: item.defaultCount || ''
+              };
+          });
+      });
+
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Categories");
-      XLSX.writeFile(wb, `Categories_Export.xlsx`);
+      
+      const wsCats = XLSX.utils.json_to_sheet(catData);
+      XLSX.utils.book_append_sheet(wb, wsCats, "Categories");
+
+      if (comboData.length > 0) {
+          const wsCombos = XLSX.utils.json_to_sheet(comboData);
+          XLSX.utils.book_append_sheet(wb, wsCombos, "Combos");
+      }
+
+      XLSX.writeFile(wb, `Categories_and_Combos_Export.xlsx`);
       showToast('Exported successfully', 'success');
       setExportSummary(null);
   };
@@ -101,62 +131,114 @@ const CategoryManagement: React.FC = () => {
 
           const buffer = await file.arrayBuffer();
           const wb = XLSX.read(buffer);
-          const ws = wb.Sheets[wb.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json(ws) as Record<string, string | number>[];
           
-          if (json.length === 0) {
-              showToast('File is empty', 'info');
-              if (fileInputRef.current) fileInputRef.current.value = '';
-              return;
-          }
-
+          // Process Categories
+          const wsCats = wb.Sheets["Categories"] || wb.Sheets[wb.SheetNames[0]];
+          const catJson = XLSX.utils.sheet_to_json(wsCats) as Record<string, string | number>[];
+          
           let newCats = 0;
           let newSubs = 0;
+          let newCombosCount = 0;
           
           const tempCats = JSON.parse(JSON.stringify(categories)) as Category[];
+          const tempCombos: CategoryCombo[] = [];
 
-          for (const row of json) {
-              const catName = row['Name'] || row['name'] || row['Category'];
-              const subName = row['SubCategories'] || row['SubCategory'] || row['subcategory'];
-              const timeVal = row['Time'] || row['time'] || row['Minutes'] || row['minutes'];
+          if (catJson.length > 0) {
+              for (const row of catJson) {
+                  const catName = row['Name'] || row['name'] || row['Category'];
+                  const subName = row['SubCategories'] || row['SubCategory'] || row['subcategory'];
+                  const timeVal = row['Time'] || row['time'] || row['Minutes'] || row['minutes'];
+                  const colorVal = row['Color'] || row['color'];
 
-              if (!catName) continue;
+                  if (!catName) continue;
 
-              let cat = tempCats.find(c => c.name.toLowerCase() === String(catName).toLowerCase().trim());
-              
-              if (!cat) {
-                  cat = {
-                      id: `imported_cat_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                      name: String(catName).trim(),
-                      color: PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)],
-                      subCategories: []
-                  };
-                  tempCats.push(cat);
-                  newCats++;
-              }
+                  let cat = tempCats.find(c => c.name.toLowerCase() === String(catName).toLowerCase().trim());
+                  
+                  if (!cat) {
+                      cat = {
+                          id: `imported_cat_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                          name: String(catName).trim(),
+                          color: String(colorVal || PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)]),
+                          subCategories: []
+                      };
+                      tempCats.push(cat);
+                      newCats++;
+                  }
 
-              if (subName) {
-                  const sName = String(subName).trim();
-                  const exists = cat.subCategories.some(s => s.name.toLowerCase() === sName.toLowerCase());
-                  if (!exists) {
-                      cat.subCategories.push({
-                          id: `imported_sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                          name: sName,
-                          minutes: parseInt(String(timeVal)) || 0
-                      });
-                      newSubs++;
+                  if (subName) {
+                      const sName = String(subName).trim();
+                      const exists = cat.subCategories.some(s => s.name.toLowerCase() === sName.toLowerCase());
+                      if (!exists) {
+                          cat.subCategories.push({
+                              id: `imported_sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                              name: sName,
+                              minutes: parseInt(String(timeVal)) || 0
+                          });
+                          newSubs++;
+                      }
                   }
               }
           }
 
-          if (newCats === 0 && newSubs === 0) {
+          // Process Combos
+          const wsCombos = wb.Sheets["Combos"];
+          if (wsCombos) {
+              const comboJson = XLSX.utils.sheet_to_json(wsCombos) as Record<string, string | number>[];
+              const comboGroups: Record<string, { name: string, color: string, items: any[] }> = {};
+
+              for (const row of comboJson) {
+                  const comboName = row['ComboName'] || row['combo_name'];
+                  const comboColor = row['ComboColor'] || row['color'];
+                  const catName = row['Category'] || row['category'];
+                  const subName = row['SubCategory'] || row['subcategory'];
+                  const defCount = row['DefaultCount'] || row['count'];
+
+                  if (!comboName || !catName) continue;
+
+                  if (!comboGroups[String(comboName)]) {
+                      comboGroups[String(comboName)] = {
+                          name: String(comboName),
+                          color: String(comboColor || PRESET_COLORS[0]),
+                          items: []
+                      };
+                  }
+
+                  const cat = tempCats.find(c => c.name.toLowerCase() === String(catName).toLowerCase().trim());
+                  if (cat) {
+                      const sub = cat.subCategories.find(s => s.name.toLowerCase() === String(subName || '').toLowerCase().trim());
+                      comboGroups[String(comboName)].items.push({
+                          categoryId: cat.id,
+                          subCategoryId: sub?.id,
+                          defaultCount: parseInt(String(defCount)) || undefined
+                      });
+                  }
+              }
+
+              for (const name in comboGroups) {
+                  const group = comboGroups[name];
+                  const existing = categoryCombos.find(c => c.name.toLowerCase() === name.toLowerCase());
+                  if (!existing) {
+                      tempCombos.push({
+                          id: `imported_combo_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                          userId: currentUser.id,
+                          name: group.name,
+                          color: group.color,
+                          items: group.items
+                      });
+                      newCombosCount++;
+                  }
+              }
+          }
+
+          if (newCats === 0 && newSubs === 0 && newCombosCount === 0) {
               showToast('No new data found to import', 'info');
               if (fileInputRef.current) fileInputRef.current.value = '';
               return;
           }
 
           setPendingCategories(tempCats);
-          setImportSummary({ newCategories: newCats, newSubCategories: newSubs });
+          setPendingCombos(tempCombos);
+          setImportSummary({ newCategories: newCats, newSubCategories: newSubs, newCombos: newCombosCount });
 
       } catch (error: unknown) {
           console.error(error);
@@ -178,10 +260,16 @@ const CategoryManagement: React.FC = () => {
                   }
               }
           }
-          showToast(`Imported ${importSummary?.newCategories} categories and ${importSummary?.newSubCategories} sub-categories`, 'success');
       }
+      if (pendingCombos) {
+          for (const combo of pendingCombos) {
+              addCategoryCombo(combo);
+          }
+      }
+      showToast(`Imported ${importSummary?.newCategories} categories, ${importSummary?.newSubCategories} sub-categories, and ${importSummary?.newCombos} combos`, 'success');
       setImportSummary(null);
       setPendingCategories(null);
+      setPendingCombos(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -254,6 +342,8 @@ const CategoryManagement: React.FC = () => {
           </div>
       </div>
 
+      <CategoryComboManager isOpen={isComboModalOpen} onClose={() => setIsComboModalOpen(false)} />
+
       <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4 items-center relative lg:sticky lg:top-2 z-20 backdrop-blur-md bg-opacity-90 transition-all duration-300">
           <div className="relative flex-1 w-full">
               <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
@@ -263,6 +353,7 @@ const CategoryManagement: React.FC = () => {
               <input type="file" ref={fileInputRef} onChange={handleImportFile} className="hidden" accept=".xlsx, .xls" />
               <button onClick={() => fileInputRef.current?.click()} className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Upload size={16} /> Import</button>
               <button onClick={handleExportClick} className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Download size={16} /> Export</button>
+              <button onClick={() => setIsComboModalOpen(true)} className="px-4 py-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors flex items-center gap-2 whitespace-nowrap"><Bookmark size={16} /> Category Combos</button>
               <div className="w-px bg-slate-200 dark:bg-slate-700 mx-1 h-8 self-center"></div>
               <button onClick={() => setIsCreateOpen(true)} className="px-6 py-3 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap transform hover:-translate-y-0.5 hover:shadow-xl bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none"><Plus size={18} strokeWidth={3} /> New Category</button>
           </div>

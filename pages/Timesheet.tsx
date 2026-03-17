@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
-import { DayConfig, TimeLog } from '../types';
+import { DayConfig, TimeLog, CategoryCombo } from '../types';
 import { ChevronLeft, ChevronRight, Calendar, List, Grid3X3, Download, Upload, LayoutGrid, CalendarClock, Eraser, AlertTriangle, Filter, CheckSquare, Square, ChevronDown, ChevronRight as ChevronIcon, Settings, Table, AlignJustify } from 'lucide-react';
 import { getLocalDateStr } from '../utils/storage';
 import { getStartOfWeek, exportTimesheetToExcel, parseTimesheetImport, downloadTemplate } from '../utils/timesheetHelpers';
@@ -18,7 +18,7 @@ type ViewMode = 'DAILY' | 'WEEK' | 'MONTH';
 type LayoutMode = 'TABLE' | 'LIST';
 
 const TimesheetPage: React.FC = () => {
-    const { logs, logsByDate, categories, addLog, batchAddLogs, updateLog, deleteLog, currentUser, applyRecurringTasks, resetTimesheet, dayConfigs, updateDayConfig } = useApp();
+    const { logs, logsByDate, categories, addLog, batchAddLogs, updateLog, deleteLog, currentUser, applyRecurringTasks, resetTimesheet, dayConfigs, updateDayConfig, categoryCombos } = useApp();
     const { showToast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
     
@@ -265,6 +265,26 @@ const TimesheetPage: React.FC = () => {
         setIsResetConfirmationOpen(false);
         showToast('Timesheet cleared successfully', 'success');
     };
+
+    const handleApplyComboToDay = (combo: CategoryCombo, multiplier: number = 1) => {
+        const targetDate = getLocalDateStr(anchorDate);
+        
+        const newLogs: TimeLog[] = combo.items.map(item => ({
+            id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            userId: currentUser.id,
+            date: targetDate,
+            categoryId: item.categoryId,
+            subCategoryId: item.subCategoryId || 'general',
+            startTime: '09:00', // Default start time
+            endTime: '10:00',   // Default end time
+            durationMinutes: 0,
+            count: (item.defaultCount || 0) * multiplier,
+            notes: `Applied from combo: ${combo.name}`
+        }));
+
+        batchAddLogs(newLogs);
+        showToast(`Applied ${newLogs.length} entries to ${targetDate}`, 'success');
+    };
   
     return (
       <div className="flex flex-col gap-6 animate-fade-in font-sans pb-20">
@@ -300,6 +320,9 @@ const TimesheetPage: React.FC = () => {
             toggleCategoryVisibility={toggleCategoryVisibility}
             toggleCategoryExpand={toggleCategoryExpand}
             toggleSubCategoryVisibility={toggleSubCategoryVisibility}
+            categoryCombos={categoryCombos}
+            setHiddenCategoryIds={setHiddenCategoryIds}
+            onApplyComboToDay={handleApplyComboToDay}
             setIsRecurringModalOpen={setIsRecurringModalOpen}
             openTodaySettings={openTodaySettings}
             fileInputRef={fileInputRef}

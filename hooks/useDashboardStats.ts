@@ -245,6 +245,7 @@ export const useDashboardStats = (
         weeklyData,
         sessionStats,
         locationStats,
-        stacks
+        stacks,
+        activeDays
     };
 };

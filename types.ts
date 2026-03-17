@@ -104,6 +104,20 @@ export interface DashboardWidget {
   y: number;
 }
 
+export interface CategoryComboItem {
+  categoryId: string;
+  subCategoryId?: string;
+  defaultCount?: number;
+}
+
+export interface CategoryCombo {
+  id: string;
+  userId: string;
+  name: string;
+  items: CategoryComboItem[];
+  color?: string;
+}
+
 export interface AppState {
   currentUser: User;
   categories: Category[];
@@ -111,4 +125,5 @@ export interface AppState {
   recurringTasks: RecurringTask[];
   teams: Team[];
   dayConfigs: DayConfig[];
+  categoryCombos: CategoryCombo[];
 }

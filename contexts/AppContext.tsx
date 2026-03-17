@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Category, TimeLog, User, RecurringTask, Team, UserRole, DayConfig, DashboardWidget } from '../types';
+import { Category, TimeLog, User, RecurringTask, Team, UserRole, DayConfig, DashboardWidget, CategoryCombo } from '../types';
 import { INITIAL_CATEGORIES, MOCK_LOGS, INITIAL_USERS, INITIAL_TEAMS, DEFAULT_WIDGETS } from '../constants';
 import { loadFromLocalStorage, getLocalDateStr, debouncedSave } from '../utils/storage';
 
@@ -14,6 +14,7 @@ interface AppContextType {
   teams: Team[];
   dayConfigs: DayConfig[];
   dashboardWidgets: DashboardWidget[];
+  categoryCombos: CategoryCombo[];
   setCurrentUser: (user: User) => void;
   updateUser: (user: User) => void;
   addUser: (user: User) => void;
@@ -34,6 +35,9 @@ interface AppContextType {
   deleteTeam: (id: string) => void;
   updateDayConfig: (config: DayConfig) => void;
   updateDashboardWidgets: (widgets: DashboardWidget[]) => void;
+  addCategoryCombo: (combo: CategoryCombo) => void;
+  updateCategoryCombo: (combo: CategoryCombo) => void;
+  deleteCategoryCombo: (id: string) => void;
   resetData: () => void;
   resetTimesheet: () => void;
 }
@@ -95,6 +99,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadFromLocalStorage('dashboardWidgets', DEFAULT_WIDGETS)
   );
 
+  const [categoryCombos, setCategoryCombos] = useState<CategoryCombo[]>(() => 
+    loadFromLocalStorage('categoryCombos', [])
+  );
+
   // Debounce storage writes
   useEffect(() => {
     debouncedSave('users', users);
@@ -134,6 +142,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     debouncedSave('dashboardWidgets', dashboardWidgets);
   }, [dashboardWidgets]);
+
+  useEffect(() => {
+    debouncedSave('categoryCombos', categoryCombos);
+  }, [categoryCombos]);
 
 
   const updateUser = useCallback((updatedUser: User) => {
@@ -297,6 +309,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDashboardWidgets(widgets);
   }, []);
 
+  // Category Combo Management
+  const addCategoryCombo = useCallback((combo: CategoryCombo) => {
+    setCategoryCombos(prev => [...prev, combo]);
+  }, []);
+
+  const updateCategoryCombo = useCallback((updatedCombo: CategoryCombo) => {
+    setCategoryCombos(prev => prev.map(c => c.id === updatedCombo.id ? updatedCombo : c));
+  }, []);
+
+  const deleteCategoryCombo = useCallback((id: string) => {
+    setCategoryCombos(prev => prev.filter(c => c.id !== id));
+  }, []);
+
   // Team Management
   const createTeam = useCallback((name: string) => {
     const newTeam: Team = {
@@ -389,6 +414,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     recurringTasks,
     dayConfigs,
     dashboardWidgets,
+    categoryCombos,
     setCurrentUser,
     updateUser,
     addUser,
@@ -409,14 +435,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteTeam,
     updateDayConfig,
     updateDashboardWidgets,
+    addCategoryCombo,
+    updateCategoryCombo,
+    deleteCategoryCombo,
     resetData,
     resetTimesheet
   }), [
-    currentUser, users, categories, logs, logsByDate, recurringTasks, teams, dayConfigs, dashboardWidgets,
+    currentUser, users, categories, logs, logsByDate, recurringTasks, teams, dayConfigs, dashboardWidgets, categoryCombos,
     updateUser, addUser, deleteUser, login, addLog, batchAddLogs, updateLog, deleteLog,
     addCategory, updateCategory, deleteCategory,
     addRecurringTask, deleteRecurringTask, applyRecurringTasks,
     createTeam, joinTeam, deleteTeam, updateDayConfig, updateDashboardWidgets,
+    addCategoryCombo, updateCategoryCombo, deleteCategoryCombo,
     resetData, resetTimesheet
   ]);
 

@@ -35,7 +35,7 @@ const NavItem = ({ to, icon: Icon, label, description, isCollapsed, onClose }: N
         to={to}
         className={`group relative flex items-center px-4 py-3.5 my-1.5 rounded-2xl transition-all duration-300 ease-out
           ${isActive 
-            ? 'bg-slate-900 text-white shadow-lg shadow-slate-200 dark:shadow-indigo-900/20 dark:bg-gradient-to-r dark:from-indigo-600 dark:to-indigo-700' 
+            ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold' 
             : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'
           } 
           ${isCollapsed ? 'justify-center' : 'justify-between'}
@@ -43,16 +43,16 @@ const NavItem = ({ to, icon: Icon, label, description, isCollapsed, onClose }: N
         onClick={onClose}
       >
         <div className="flex items-center gap-3.5 z-10">
-          <Icon size={22} className={`transition-transform duration-300 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:scale-110'} ${!isActive && 'group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`} />
+          <Icon size={22} className={`transition-transform duration-300 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500 group-hover:scale-110'} ${!isActive && 'group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`} />
           {!isCollapsed && (
             <div className="flex flex-col">
-                 <span className={`font-bold text-sm tracking-wide leading-none ${isActive ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>{label}</span>
-                 {description && isActive && <span className="text-[10px] text-indigo-200 font-medium mt-1 leading-none opacity-90">{description}</span>}
+                 <span className={`font-bold text-sm tracking-wide leading-none ${isActive ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>{label}</span>
+                 {description && isActive && <span className="text-[10px] text-indigo-500/70 dark:text-indigo-400/70 font-medium mt-1 leading-none opacity-90">{description}</span>}
             </div>
           )}
         </div>
         {!isCollapsed && isActive && (
-             <div className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] z-10"></div>
+             <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 shadow-[0_0_8px_rgba(79,70,229,0.4)] z-10"></div>
         )}
       </Link>
     );

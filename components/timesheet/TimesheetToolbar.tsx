@@ -1,7 +1,8 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Calendar, List, Grid3X3, LayoutGrid, Table, AlignJustify, CalendarClock, Settings, Upload, Download, Eraser, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, List, Grid3X3, LayoutGrid, Table, AlignJustify, CalendarClock, Settings, Upload, Download, Eraser, MoreHorizontal, Plus, X } from 'lucide-react';
 import { TimesheetFilter } from './TimesheetFilter';
-import { Category } from '../../types';
+import { Category, CategoryCombo } from '../../types';
+import { Bookmark, Check } from 'lucide-react';
 
 type ViewMode = 'DAILY' | 'WEEK' | 'MONTH';
 type LayoutMode = 'TABLE' | 'LIST';
@@ -26,6 +27,9 @@ interface TimesheetToolbarProps {
     toggleCategoryVisibility: (id: string) => void;
     toggleCategoryExpand: (id: string, e: React.MouseEvent) => void;
     toggleSubCategoryVisibility: (catId: string, subId: string) => void;
+    categoryCombos: CategoryCombo[];
+    setHiddenCategoryIds: (ids: Set<string>) => void;
+    onApplyComboToDay?: (combo: CategoryCombo, multiplier?: number) => void;
 
     // Action Props
     setIsRecurringModalOpen: (isOpen: boolean) => void;
@@ -42,9 +46,20 @@ export const TimesheetToolbar: React.FC<TimesheetToolbarProps> = ({
     layoutMode, setLayoutMode,
     label, navigate, setAnchorDate,
     isFilterOpen, setIsFilterOpen, categories, hiddenCategoryIds, hiddenSubCategoryIds, expandedCategories, toggleAllCategories, toggleCategoryVisibility, toggleCategoryExpand, toggleSubCategoryVisibility,
+    categoryCombos, setHiddenCategoryIds, onApplyComboToDay,
     setIsRecurringModalOpen, openTodaySettings, fileInputRef, handleImportFile, handleDownloadTemplate, handleExportClick, setIsResetConfirmationOpen
 }) => {
     const [isMoreMenuOpen, setIsMoreMenuOpen] = React.useState(false);
+    const [isComboMenuOpen, setIsComboMenuOpen] = React.useState(false);
+
+    const applyComboFilter = (combo: CategoryCombo) => {
+        const comboSet = new Set(combo.items.map(i => i.categoryId));
+        const allIds = categories.map(c => c.id);
+        const hidden = allIds.filter(id => !comboSet.has(id));
+        setHiddenCategoryIds(new Set(hidden));
+        setIsComboMenuOpen(false);
+    };
+
     return (
         <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4 relative z-20 sticky top-4">
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
@@ -80,6 +95,88 @@ export const TimesheetToolbar: React.FC<TimesheetToolbarProps> = ({
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-100 dark:border-slate-700/50 flex-wrap">
+                        {categoryCombos.length > 0 && (
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setIsComboMenuOpen(!isComboMenuOpen)}
+                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-sm font-medium ${isComboMenuOpen ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                                    title="Category Combos"
+                                >
+                                    <Bookmark size={16} />
+                                    <span className="hidden sm:inline">Combos</span>
+                                </button>
+
+                                {isComboMenuOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setIsComboMenuOpen(false)} />
+                                        <div className="absolute top-full mt-2 left-0 sm:left-auto sm:right-0 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 p-3 z-50 animate-scale-up origin-top-left sm:origin-top-right flex flex-col max-h-[60vh]">
+                                            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                                                <div className="flex items-center gap-2">
+                                                    <Bookmark size={14} className="text-indigo-500" />
+                                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quick Apply Combos</span>
+                                                </div>
+                                                <button onClick={() => setIsComboMenuOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+
+                                            <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                                {categoryCombos.map(combo => (
+                                                    <div key={combo.id} className="flex flex-col p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors group">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: combo.color || '#6366f1' }} />
+                                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{combo.name}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">{combo.items.length} items</span>
+                                                        </div>
+                                                        <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button 
+                                                                onClick={() => applyComboFilter(combo)}
+                                                                className="flex-1 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center justify-center gap-1"
+                                                            >
+                                                                <List size={10} /> Filter
+                                                            </button>
+                                                            <div className="flex-1 flex items-center gap-1">
+                                                                <input 
+                                                                    type="number" 
+                                                                    min="1" 
+                                                                    defaultValue="1" 
+                                                                    id={`combo-multiplier-${combo.id}`}
+                                                                    className="w-10 py-1 px-1.5 text-[10px] font-bold border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-center outline-none focus:border-indigo-500"
+                                                                    title="Attempts"
+                                                                />
+                                                                <button 
+                                                                    onClick={() => { 
+                                                                        const input = document.getElementById(`combo-multiplier-${combo.id}`) as HTMLInputElement;
+                                                                        const multiplier = parseInt(input?.value || '1', 10);
+                                                                        onApplyComboToDay?.(combo, multiplier); 
+                                                                        setIsComboMenuOpen(false); 
+                                                                    }}
+                                                                    className="flex-1 py-1 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-[10px] font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/30 transition-colors flex items-center justify-center gap-1"
+                                                                >
+                                                                    <Plus size={10} /> Apply
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                                                <button 
+                                                    onClick={() => { setHiddenCategoryIds(new Set()); setIsComboMenuOpen(false); }}
+                                                    className="w-full py-2 flex items-center justify-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                                >
+                                                    <Check size={14} /> Show All Categories
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
                         <TimesheetFilter 
                             isFilterOpen={isFilterOpen}
                             setIsFilterOpen={setIsFilterOpen}

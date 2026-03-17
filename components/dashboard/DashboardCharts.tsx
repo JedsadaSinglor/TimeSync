@@ -8,21 +8,42 @@ export const TrendChart = ({ data, ready }: { data: any[], ready: boolean }) => 
   if (!ready) return <ChartSkeleton />;
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data}>
+      <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="colorMinutes" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+            <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-700/50" />
-        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dy={10} tickFormatter={(val) => {
+        <XAxis 
+          dataKey="date" 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} 
+          dy={10} 
+          tickFormatter={(val) => {
             const d = new Date(val);
             return isNaN(d.getTime()) ? val : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }} />
-        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dx={-10} tickFormatter={(val) => `${(val/60).toFixed(0)}h`} />
+          }} 
+        />
+        <YAxis 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
+          dx={-10} 
+          tickFormatter={(val) => `${(val/60).toFixed(0)}h`} 
+        />
         <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-        <Area type="monotone" dataKey="minutes" stroke="#3b82f6" fillOpacity={1} fill="url(#colorMinutes)" strokeWidth={3} isAnimationActive={false} />
+        <Area 
+          type="monotone" 
+          dataKey="minutes" 
+          stroke="#6366f1" 
+          fillOpacity={1} 
+          fill="url(#colorMinutes)" 
+          strokeWidth={4} 
+          isAnimationActive={false} 
+        />
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -32,10 +53,21 @@ export const HourlyChart = ({ data, ready }: { data: any[], ready: boolean }) =>
   if (!ready) return <ChartSkeleton />;
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-700/50" />
-        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dy={10} />
-        <YAxis hide />
+        <XAxis 
+          dataKey="label" 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
+          dy={10} 
+        />
+        <YAxis 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
+          tickFormatter={(val) => `${(val/60).toFixed(0)}h`}
+        />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
         <Bar dataKey="minutes" fill="#8b5cf6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
@@ -47,13 +79,24 @@ export const WeeklyChart = ({ data, ready }: { data: any[], ready: boolean }) =>
   if (!ready) return <ChartSkeleton />;
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-        <PolarGrid stroke="#e2e8f0" className="dark:stroke-slate-700/50" />
-        <PolarAngleAxis dataKey="day" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} />
-        <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
-        <Radar name="Minutes" dataKey="minutes" stroke="#10b981" fill="#10b981" fillOpacity={0.4} isAnimationActive={false} />
-        <Tooltip content={<CustomTooltip />} />
-      </RadarChart>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-700/50" />
+        <XAxis 
+          dataKey="day" 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} 
+          dy={10} 
+        />
+        <YAxis 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
+          tickFormatter={(val) => `${(val/60).toFixed(0)}h`}
+        />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
+        <Bar dataKey="minutes" fill="#10b981" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+      </BarChart>
     </ResponsiveContainer>
   );
 };
@@ -65,13 +108,26 @@ export const BreakdownChart = ({ data, stacks, ready }: { data: any[], stacks: s
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-700/50" />
-        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }} dy={10} />
-        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(val) => `${val}h`} />
+        <XAxis 
+          dataKey="name" 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} 
+          dy={10} 
+        />
+        <YAxis 
+          axisLine={false} 
+          tickLine={false} 
+          tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
+          tickFormatter={(val) => `${(val/60).toFixed(0)}h`} 
+          allowDecimals={false}
+        />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
-        <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} iconType="circle" />
-        {stacks.map((stack, index) => (
-            <Bar key={stack} dataKey={stack} stackId="a" fill={COLORS[index % COLORS.length]} radius={index === stacks.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} isAnimationActive={false} />
-        ))}
+        <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive={false} maxBarSize={60}>
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
@@ -85,7 +141,7 @@ export const DistributionChart = ({ data, ready }: { data: any[], ready: boolean
         <Pie
           data={data}
           cx="50%"
-          cy="50%"
+          cy="45%"
           innerRadius={60}
           outerRadius={80}
           paddingAngle={5}
@@ -97,7 +153,18 @@ export const DistributionChart = ({ data, ready }: { data: any[], ready: boolean
           ))}
         </Pie>
         <Tooltip content={<CustomTooltip />} />
-        <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '12px' }} iconType="circle" />
+        <Legend 
+          layout="horizontal" 
+          verticalAlign="bottom" 
+          align="center" 
+          wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '10px' }} 
+          iconType="circle" 
+          formatter={(value, entry: any) => {
+            const total = data.reduce((sum, d) => sum + d.value, 0);
+            const percent = ((entry.payload.value / total) * 100).toFixed(1);
+            return <span className="text-slate-600 dark:text-slate-400">{value} ({percent}%)</span>;
+          }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
