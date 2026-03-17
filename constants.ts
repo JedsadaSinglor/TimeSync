@@ -1,5 +1,18 @@
 
-import { Category, TimeLog, User, Team, UserRole } from './types';
+import { Category, TimeLog, User, Team, UserRole, DashboardWidget } from './types';
+
+export const DEFAULT_WIDGETS: DashboardWidget[] = [
+  { id: 'w_hours', type: 'STATS_HOURS', title: 'Total Hours', x: 0, y: 0, w: 1, h: 1 },
+  { id: 'w_avg', type: 'STATS_AVG', title: 'Daily Average', x: 1, y: 0, w: 1, h: 1 },
+  { id: 'w_top', type: 'STATS_TOP', title: 'Top Category', x: 2, y: 0, w: 1, h: 1 },
+  { id: 'w_location', type: 'LOCATION_STATS', title: 'Work Locations', x: 0, y: 1, w: 3, h: 1 },
+  { id: 'w_session', type: 'SESSION_STATS', title: 'Session Stats', x: 0, y: 2, w: 1, h: 2 },
+  { id: 'w_peak', type: 'PEAK_HOURS', title: 'Peak Hours', x: 1, y: 2, w: 1, h: 2 },
+  { id: 'w_weekly', type: 'WEEKLY_RHYTHM', title: 'Weekly Rhythm', x: 2, y: 2, w: 1, h: 2 },
+  { id: 'w_breakdown', type: 'ACTIVITY_BREAKDOWN', title: 'Activity Breakdown', x: 0, y: 4, w: 2, h: 4 },
+  { id: 'w_distribution', type: 'DISTRIBUTION', title: 'Distribution', x: 2, y: 4, w: 1, h: 4 },
+  { id: 'w_recent', type: 'RECENT_LOGS', title: 'Recent Logs', x: 0, y: 8, w: 3, h: 4 },
+];
 
 export const INITIAL_USERS: User[] = [
   { 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Tooltip } from '../ui/Tooltip';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -16,10 +17,20 @@ interface SidebarProps {
     onEditProfile: () => void;
 }
 
-const NavItem = ({ to, icon: Icon, label, description, isCollapsed, onClose }: any) => {
+interface NavItemProps {
+    to: string;
+    icon: React.ElementType;
+    label: string;
+    description?: string;
+    isCollapsed: boolean;
+    onClose: () => void;
+}
+
+const NavItem = ({ to, icon: Icon, label, description, isCollapsed, onClose }: NavItemProps) => {
     const location = useLocation();
     const isActive = location.pathname === to;
-    return (
+    
+    const content = (
       <Link
         to={to}
         className={`group relative flex items-center px-4 py-3.5 my-1.5 rounded-2xl transition-all duration-300 ease-out
@@ -30,7 +41,6 @@ const NavItem = ({ to, icon: Icon, label, description, isCollapsed, onClose }: a
           ${isCollapsed ? 'justify-center' : 'justify-between'}
         `}
         onClick={onClose}
-        title={isCollapsed ? label : ''}
       >
         <div className="flex items-center gap-3.5 z-10">
           <Icon size={22} className={`transition-transform duration-300 ${isActive ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:scale-110'} ${!isActive && 'group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`} />
@@ -46,6 +56,12 @@ const NavItem = ({ to, icon: Icon, label, description, isCollapsed, onClose }: a
         )}
       </Link>
     );
+
+    if (isCollapsed) {
+        return <Tooltip content={label} side="right">{content}</Tooltip>;
+    }
+
+    return content;
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed, toggleCollapse, onEditProfile }) => {

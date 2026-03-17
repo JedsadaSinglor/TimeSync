@@ -1,10 +1,22 @@
 
+const timers: Record<string, ReturnType<typeof setTimeout>> = {};
+
 export const saveToLocalStorage = <T,>(key: string, data: T): void => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
     console.error('Error saving to localStorage', e);
   }
+};
+
+export const debouncedSave = <T,>(key: string, data: T, delay: number = 1000): void => {
+  if (timers[key]) {
+    clearTimeout(timers[key]);
+  }
+  timers[key] = setTimeout(() => {
+    saveToLocalStorage(key, data);
+    delete timers[key];
+  }, delay);
 };
 
 export const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {

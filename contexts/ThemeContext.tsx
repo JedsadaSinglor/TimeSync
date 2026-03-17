@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { saveToLocalStorage, loadFromLocalStorage } from '../utils/storage';
+import { loadFromLocalStorage, debouncedSave } from '../utils/storage';
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -10,11 +10,11 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => 
-    loadFromLocalStorage('isDarkMode', false)
+    loadFromLocalStorage('isDarkMode', window.matchMedia('(prefers-color-scheme: dark)').matches)
   );
 
   useEffect(() => {
-    saveToLocalStorage('isDarkMode', isDarkMode);
+    debouncedSave('isDarkMode', isDarkMode, 500);
     const html = document.documentElement;
     if (isDarkMode) {
       html.classList.add('dark');

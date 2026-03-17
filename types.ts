@@ -63,6 +63,8 @@ export interface RecurringTask {
   dayOfMonth?: number; // 1-31 (used for MONTHLY)
   startDate?: string; // YYYY-MM-DD
   endDate?: string;   // YYYY-MM-DD
+  startTime?: string; // HH:mm
+  endTime?: string;   // HH:mm
   durationMinutes: number;
   count?: number;
   notes: string;
@@ -78,6 +80,28 @@ export interface DayConfig {
   isHoliday?: boolean;
   holidayName?: string;
   isWorkingDay?: boolean; // Specifically for overriding weekends
+}
+
+export type WidgetType = 
+  | 'STATS_HOURS' 
+  | 'STATS_AVG' 
+  | 'STATS_TOP' 
+  | 'LOCATION_STATS' 
+  | 'SESSION_STATS' 
+  | 'PEAK_HOURS' 
+  | 'WEEKLY_RHYTHM' 
+  | 'ACTIVITY_BREAKDOWN' 
+  | 'DISTRIBUTION' 
+  | 'RECENT_LOGS';
+
+export interface DashboardWidget {
+  id: string;
+  type: WidgetType;
+  title: string;
+  w: number;
+  h: number;
+  x: number;
+  y: number;
 }
 
 export interface AppState {

@@ -1,27 +1,68 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
+import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
-import { DayConfig } from '../types';
-import { ChevronLeft, ChevronRight, Calendar, List, Grid3X3, Download, Upload, LayoutGrid, CalendarClock, Eraser, AlertTriangle, Filter, CheckSquare, Square, ChevronDown, ChevronRight as ChevronIcon, Settings } from 'lucide-react';
+import { DayConfig, TimeLog } from '../types';
+import { ChevronLeft, ChevronRight, Calendar, List, Grid3X3, Download, Upload, LayoutGrid, CalendarClock, Eraser, AlertTriangle, Filter, CheckSquare, Square, ChevronDown, ChevronRight as ChevronIcon, Settings, Table, AlignJustify } from 'lucide-react';
 import { getLocalDateStr } from '../utils/storage';
-import { getStartOfWeek, exportTimesheetToExcel, parseTimesheetImport } from '../utils/timesheetHelpers';
+import { getStartOfWeek, exportTimesheetToExcel, parseTimesheetImport, downloadTemplate } from '../utils/timesheetHelpers';
 import { DaySettingsModal } from '../components/timesheet/DaySettingsModal';
 import { RecurringTasksModal } from '../components/timesheet/RecurringTasksModal';
 import { TimesheetTable } from '../components/timesheet/TimesheetTable';
+import { TimesheetList } from '../components/timesheet/TimesheetList';
+import { ExportConfirmationModal, ImportConfirmationModal } from '../components/timesheet/ImportExportModals';
+import { TimesheetToolbar } from '../components/timesheet/TimesheetToolbar';
 
 type ViewMode = 'DAILY' | 'WEEK' | 'MONTH';
+type LayoutMode = 'TABLE' | 'LIST';
 
 const TimesheetPage: React.FC = () => {
-    const { logs, categories, addLog, updateLog, deleteLog, currentUser, applyRecurringTasks, resetTimesheet, dayConfigs, updateDayConfig } = useApp();
+    const { logs, logsByDate, categories, addLog, batchAddLogs, updateLog, deleteLog, currentUser, applyRecurringTasks, resetTimesheet, dayConfigs, updateDayConfig } = useApp();
     const { showToast } = useToast();
-    const [viewMode, setViewMode] = useState<ViewMode>('WEEK');
-    const [anchorDate, setAnchorDate] = useState(new Date());
+    const [searchParams, setSearchParams] = useSearchParams();
+    
+    const viewMode = (searchParams.get('view') as ViewMode) || 'WEEK';
+    const layoutMode = (searchParams.get('layout') as LayoutMode) || 'TABLE';
+    
+    const anchorDate = useMemo(() => {
+        const d = searchParams.get('date');
+        if (!d) return new Date();
+        const [y, m, day] = d.split('-').map(Number);
+        return new Date(y, m - 1, day);
+    }, [searchParams]);
+
+    const setViewMode = (mode: ViewMode) => {
+        setSearchParams(prev => {
+            prev.set('view', mode);
+            return prev;
+        });
+    };
+
+    const setLayoutMode = (mode: LayoutMode) => {
+        setSearchParams(prev => {
+            prev.set('layout', mode);
+            return prev;
+        });
+    };
+
+    const setAnchorDate = (date: Date) => {
+        setSearchParams(prev => {
+            prev.set('date', getLocalDateStr(date));
+            return prev;
+        });
+    };
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isResetConfirmationOpen, setIsResetConfirmationOpen] = useState(false);
     const [daySettingsModal, setDaySettingsModal] = useState<{ isOpen: boolean; dateObj: Date; config?: DayConfig }>({ isOpen: false, dateObj: new Date() });
     
+    // Import/Export State
+    const [exportSummary, setExportSummary] = useState<{ startDate: string; endDate: string; totalDays: number; totalHours: number; categoryCount: number } | null>(null);
+    const [importSummary, setImportSummary] = useState<{ count: number; duplicateCount: number; startDate: string; endDate: string } | null>(null);
+    const [pendingImportLogs, setPendingImportLogs] = useState<{ unique: TimeLog[], duplicates: TimeLog[] }>({ unique: [], duplicates: [] });
+
     // Filter States
     const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<string>>(new Set());
     const [hiddenSubCategoryIds, setHiddenSubCategoryIds] = useState<Set<string>>(new Set());
@@ -98,8 +139,8 @@ const TimesheetPage: React.FC = () => {
       return dList.map(d => ({ ...d, config: dayConfigMap.get(d.dateStr) }));
     }, [viewMode, anchorDate, dayConfigMap]);
 
-    // Apply recurring tasks when view changes (using useMemo as a reactive effect without DOM side effects)
-    useMemo(() => {
+    // Apply recurring tasks when view changes
+    useEffect(() => {
         if (days.length > 0) applyRecurringTasks(days[0].dateObj, days[days.length - 1].dateObj);
     }, [days, applyRecurringTasks]);
   
@@ -124,25 +165,99 @@ const TimesheetPage: React.FC = () => {
         setDaySettingsModal({ isOpen: true, dateObj: today, config: dayConfigMap.get(dateStr) });
     };
   
-    const handleExport = () => {
+    const handleExportClick = () => {
+        console.log('handleExportClick called');
+        if (days.length === 0) {
+            console.log('No days to export');
+            showToast('No data to export', 'error');
+            return;
+        }
+        
+        const startDate = days[0].dateStr;
+        const endDate = days[days.length - 1].dateStr;
+        
+        // Calculate total hours for visible range
+        const totalHours = logs
+            .filter(l => l.userId === currentUser.id && days.some(d => d.dateStr === l.date))
+            .reduce((acc, l) => acc + (l.durationMinutes || 0), 0) / 60;
+
+        const summary = {
+            startDate,
+            endDate,
+            totalDays: days.length,
+            totalHours,
+            categoryCount: categories.length
+        };
+        console.log('Setting export summary:', summary);
+        setExportSummary(summary);
+    };
+
+    const confirmExport = () => {
+        console.log('confirmExport called');
         exportTimesheetToExcel(days, categories, logs, currentUser);
         showToast(`Exported successfully`, 'success');
+        setExportSummary(null);
+    };
+
+    const handleDownloadTemplate = () => {
+        downloadTemplate(categories);
+        showToast(`Template downloaded`, 'success');
     };
   
     const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        console.log('handleImportFile called');
         const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file) {
+            console.log('No file selected');
+            return;
+        }
         try {
-            const { newLogs, count } = await parseTimesheetImport(file, categories, logs, currentUser);
-            newLogs.forEach(log => addLog(log)); // Batch adding might be better but AppContext handles state
-            if (count > 0) showToast(`Successfully imported ${count} entries`, 'success');
-            else showToast('No new entries found.', 'info');
-        } catch (e) {
-            console.error(e);
-            showToast("Error processing file", "error");
-        } finally {
+            const { uniqueLogs, duplicateLogs } = await parseTimesheetImport(file, categories, logs, currentUser);
+            console.log('Parsed import:', { unique: uniqueLogs.length, duplicates: duplicateLogs.length });
+            
+            if (uniqueLogs.length === 0 && duplicateLogs.length === 0) {
+                showToast('No valid entries found.', 'info');
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
+
+            // Calculate summary
+            const allLogs = [...uniqueLogs, ...duplicateLogs];
+            const dates = allLogs.map(l => l.date).sort();
+            const startDate = dates[0];
+            const endDate = dates[dates.length - 1];
+
+            setPendingImportLogs({ unique: uniqueLogs, duplicates: duplicateLogs });
+            const summary = {
+                count: uniqueLogs.length,
+                duplicateCount: duplicateLogs.length,
+                startDate,
+                endDate
+            };
+            console.log('Setting import summary:', summary);
+            setImportSummary(summary);
+
+        } catch (e: unknown) {
+            console.error('Import error:', e);
+            const error = e as Error;
+            showToast(error.message || "Error processing file", "error");
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
+    };
+
+    const confirmImport = (skipDuplicates: boolean) => {
+        const logsToAdd = skipDuplicates ? pendingImportLogs.unique : [...pendingImportLogs.unique, ...pendingImportLogs.duplicates];
+        
+        if (logsToAdd.length > 0) {
+            batchAddLogs(logsToAdd);
+            showToast(`Successfully imported ${logsToAdd.length} entries`, 'success');
+        } else {
+            showToast('No entries imported', 'info');
+        }
+        
+        setImportSummary(null);
+        setPendingImportLogs({ unique: [], duplicates: [] });
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
   
     const confirmClear = () => {
@@ -167,134 +282,86 @@ const TimesheetPage: React.FC = () => {
         />
         
         {/* Controls Header */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row justify-between items-center gap-6 sticky top-2 z-10">
-          <div className="flex flex-col md:flex-row items-center gap-3 w-full xl:w-auto">
-               <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full md:w-auto shadow-inner">
-                  <button onClick={() => setViewMode('DAILY')} className={`flex-1 md:flex-none px-4 md:px-6 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${viewMode === 'DAILY' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/5' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}><List size={16} /> Daily</button>
-                  <button onClick={() => setViewMode('WEEK')} className={`flex-1 md:flex-none px-4 md:px-6 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${viewMode === 'WEEK' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/5' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}><Grid3X3 size={16} /> Weekly</button>
-                  <button onClick={() => setViewMode('MONTH')} className={`flex-1 md:flex-none px-4 md:px-6 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${viewMode === 'MONTH' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/5' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}><LayoutGrid size={16} /> Monthly</button>
-               </div>
-          </div>
-          <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
-                  <div className="flex w-full md:w-auto gap-2 items-center">
-                       {/* Category Filter Dropdown */}
-                       <div className="relative z-50">
-                          <button 
-                             onClick={() => setIsFilterOpen(!isFilterOpen)} 
-                             className={`p-3 rounded-2xl border transition-colors shadow-sm ${isFilterOpen || hiddenCategoryIds.size > 0 ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                             title="Filter Categories"
-                          >
-                              <Filter size={20} />
-                          </button>
-                          
-                          {isFilterOpen && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
-                                <div className="absolute top-full mt-2 left-0 md:left-auto md:right-0 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 z-50 animate-scale-up">
-                                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Visible Rows</span>
-                                        <button onClick={toggleAllCategories} className="text-xs font-bold text-indigo-500 hover:text-indigo-600">
-                                            {hiddenCategoryIds.size > 0 ? 'Show All' : 'Hide All'}
-                                        </button>
-                                    </div>
-                                    <div className="max-h-80 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                                        {categories.map(cat => {
-                                            const isCatHidden = hiddenCategoryIds.has(cat.id);
-                                            const hasSubs = cat.subCategories && cat.subCategories.length > 0;
-                                            const isExpanded = expandedCategories.has(cat.id);
-
-                                            return (
-                                                <div key={cat.id} className="select-none">
-                                                    <div 
-                                                        className={`flex items-center gap-2 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group ${isCatHidden ? 'opacity-70' : ''}`}
-                                                        onClick={() => toggleCategoryVisibility(cat.id)}
-                                                    >
-                                                        <div className={`transition-colors ${isCatHidden ? 'text-slate-300 dark:text-slate-600' : 'text-indigo-500'}`}>
-                                                            {isCatHidden ? <Square size={16} /> : <CheckSquare size={16} />}
-                                                        </div>
-                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                            <span className="w-2 h-2 rounded-full shrink-0" style={{backgroundColor: cat.color}}></span>
-                                                            <span className={`text-sm font-bold truncate ${isCatHidden ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-200'}`}>{cat.name}</span>
-                                                        </div>
-                                                        {hasSubs && (
-                                                            <div 
-                                                                className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400"
-                                                                onClick={(e) => toggleCategoryExpand(cat.id, e)}
-                                                            >
-                                                                {isExpanded ? <ChevronDown size={14} /> : <ChevronIcon size={14} />}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    {hasSubs && isExpanded && !isCatHidden && (
-                                                        <div className="pl-8 space-y-1 mt-1 border-l-2 border-slate-100 dark:border-slate-800 ml-4 mb-2">
-                                                            {cat.subCategories.map(sub => {
-                                                                const isSubHidden = hiddenSubCategoryIds.has(`${cat.id}-${sub.id}`);
-                                                                return (
-                                                                    <div 
-                                                                        key={sub.id}
-                                                                        onClick={() => toggleSubCategoryVisibility(cat.id, sub.id)}
-                                                                        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                                                                    >
-                                                                         <div className={`transition-colors ${isSubHidden ? 'text-slate-300 dark:text-slate-600' : 'text-indigo-400'}`}>
-                                                                            {isSubHidden ? <Square size={14} /> : <CheckSquare size={14} />}
-                                                                        </div>
-                                                                        <span className={`text-xs font-medium truncate ${isSubHidden ? 'text-slate-400 line-through' : 'text-slate-600 dark:text-slate-300'}`}>{sub.name}</span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                        {categories.length === 0 && <div className="text-center text-xs text-slate-400 py-4">No categories found</div>}
-                                    </div>
-                                </div>
-                              </>
-                          )}
-                       </div>
-
-                       <div className="w-px bg-slate-200 dark:bg-slate-800 mx-1 h-8"></div>
-
-                       <button onClick={() => setIsRecurringModalOpen(true)} className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors shadow-sm" title="Recurring Tasks Manager"><CalendarClock size={20} /></button>
-                       <button onClick={openTodaySettings} className="flex-1 md:flex-none px-4 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 whitespace-nowrap"><Settings size={16} /> Day Settings</button>
-                      <div className="w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                      <div className="flex bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                          <input type="file" ref={fileInputRef} onChange={handleImportFile} accept=".xlsx, .xls" className="hidden" />
-                          <button onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-700 rounded-xl transition-all" title="Import"><Upload size={18} /></button>
-                          <button onClick={handleExport} className="p-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-700 rounded-xl transition-all" title="Export"><Download size={18} /></button>
-                          <button onClick={() => setIsResetConfirmationOpen(true)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-slate-700 rounded-xl transition-all" title="Clear Timesheet"><Eraser size={18} /></button>
-                      </div>
-                  </div>
-              <div className="flex w-full md:w-auto items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800 px-2 py-2 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-xl text-slate-500 dark:text-slate-400 transition-all active:scale-95"><ChevronLeft size={20}/></button>
-                  <div className="flex items-center gap-2 min-w-[140px] justify-center text-center">
-                      <Calendar size={18} className="text-indigo-500 dark:text-indigo-400 hidden sm:block" />
-                      <span className="font-bold text-slate-800 dark:text-white text-xs sm:text-sm">{label}</span>
-                  </div>
-                  <button onClick={() => navigate(1)} className="p-2.5 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm rounded-xl text-slate-500 dark:text-slate-400 transition-all active:scale-95"><ChevronRight size={20}/></button>
-              </div>
-              <button onClick={() => setAnchorDate(new Date())} className="w-full md:w-auto text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 px-3 py-3 md:py-1.5 rounded-lg transition-colors border border-indigo-100 dark:border-indigo-900/20 md:border-none text-center">Today</button>
-          </div>
-        </div>
+        <TimesheetToolbar 
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            layoutMode={layoutMode}
+            setLayoutMode={setLayoutMode}
+            label={label}
+            navigate={navigate}
+            setAnchorDate={setAnchorDate}
+            isFilterOpen={isFilterOpen}
+            setIsFilterOpen={setIsFilterOpen}
+            categories={categories}
+            hiddenCategoryIds={hiddenCategoryIds}
+            hiddenSubCategoryIds={hiddenSubCategoryIds}
+            expandedCategories={expandedCategories}
+            toggleAllCategories={toggleAllCategories}
+            toggleCategoryVisibility={toggleCategoryVisibility}
+            toggleCategoryExpand={toggleCategoryExpand}
+            toggleSubCategoryVisibility={toggleSubCategoryVisibility}
+            setIsRecurringModalOpen={setIsRecurringModalOpen}
+            openTodaySettings={openTodaySettings}
+            fileInputRef={fileInputRef}
+            handleImportFile={handleImportFile}
+            handleDownloadTemplate={handleDownloadTemplate}
+            handleExportClick={handleExportClick}
+            setIsResetConfirmationOpen={setIsResetConfirmationOpen}
+        />
 
         {/* Main Grid */}
         <div className="flex-1 animate-fade-in-up">
-          <TimesheetTable 
-             categories={categories}
-             logs={logs}
-             days={days}
-             targetUserId={currentUser.id}
-             readOnly={false}
-             hiddenCategoryIds={hiddenCategoryIds}
-             hiddenSubCategoryIds={hiddenSubCategoryIds}
-             onUpdateLog={updateLog}
-             onAddLog={addLog}
-             onDeleteLog={deleteLog}
-             showToast={(msg) => showToast(msg, 'success')}
-             onDaySettingsClick={(d) => setDaySettingsModal({ isOpen: true, dateObj: d.dateObj, config: d.config })}
-           />
+          {layoutMode === 'TABLE' ? (
+              <TimesheetTable 
+                 categories={categories}
+                 logsByDate={logsByDate}
+                 days={days}
+                 targetUserId={currentUser.id}
+                 readOnly={false}
+                 hiddenCategoryIds={hiddenCategoryIds}
+                 hiddenSubCategoryIds={hiddenSubCategoryIds}
+                 onUpdateLog={updateLog}
+                 onAddLog={addLog}
+                 onDeleteLog={deleteLog}
+                 showToast={(msg) => showToast(msg, 'success')}
+                 onDaySettingsClick={(d) => setDaySettingsModal({ isOpen: true, dateObj: d.dateObj, config: d.config })}
+               />
+          ) : (
+              <TimesheetList 
+                 categories={categories}
+                 logsByDate={logsByDate}
+                 days={days}
+                 targetUserId={currentUser.id}
+                 readOnly={false}
+                 hiddenCategoryIds={hiddenCategoryIds}
+                 hiddenSubCategoryIds={hiddenSubCategoryIds}
+                 onUpdateLog={updateLog}
+                 onAddLog={addLog}
+                 onDeleteLog={deleteLog}
+                 showToast={(msg) => showToast(msg, 'success')}
+                 onDaySettingsClick={(d) => setDaySettingsModal({ isOpen: true, dateObj: d.dateObj, config: d.config })}
+               />
+          )}
         </div>
+
+        {/* Modals */}
+        {exportSummary && (
+            <ExportConfirmationModal 
+                isOpen={!!exportSummary}
+                onClose={() => setExportSummary(null)}
+                onConfirm={confirmExport}
+                summary={exportSummary}
+            />
+        )}
+        
+        {importSummary && (
+            <ImportConfirmationModal 
+                isOpen={!!importSummary}
+                onClose={() => { setImportSummary(null); setPendingImportLogs({ unique: [], duplicates: [] }); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                onConfirm={confirmImport}
+                summary={importSummary}
+            />
+        )}
 
         {/* Reset Confirmation Modal */}
         {isResetConfirmationOpen && (

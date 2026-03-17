@@ -63,17 +63,73 @@ export const exportTimesheetToExcel = (
     XLSX.writeFile(wb, `Timesheet_Report_${currentUser.name.replace(/\s+/g, '_')}.xlsx`);
 };
 
+export const downloadTemplate = (categories: Category[]) => {
+    // Flatten categories for columns
+    const flatColumns: { cat: Category, sub: SubCategory }[] = [];
+    categories.forEach(cat => {
+        if (cat.subCategories.length === 0) {
+            flatColumns.push({ cat, sub: { id: 'general', name: 'General', minutes: 0 } });
+        } else {
+            cat.subCategories.forEach(sub => flatColumns.push({ cat, sub }));
+        }
+    });
+
+    const headerRow1 = ['Date', ...flatColumns.map(c => c.cat.name)];
+    const headerRow2 = ['', ...flatColumns.map(c => c.sub.name)];
+    
+    // Add an example row
+    const today = new Date();
+    const exampleRow = [getLocalDateStr(today), ...flatColumns.map(() => '')];
+
+    const wsData = [headerRow1, headerRow2, exampleRow];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // Merge headers for categories
+    const merges: XLSX.Range[] = [];
+    let startCol = 1;
+    let currentCatId = flatColumns[0]?.cat.id;
+    
+    for (let i = 1; i < flatColumns.length; i++) {
+        if (flatColumns[i].cat.id !== currentCatId) {
+            // End of previous category
+            if (i - startCol > 0) {
+                merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: i } });
+            }
+            currentCatId = flatColumns[i].cat.id;
+            startCol = i + 1;
+        }
+    }
+    // Handle last category merge
+    if (flatColumns.length - startCol >= 0) {
+         merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: flatColumns.length } });
+    }
+
+    if (merges.length > 0) ws['!merges'] = merges;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, `Timesheet_Template.xlsx`);
+};
+
 export const parseTimesheetImport = async (
     file: File,
     categories: Category[],
     existingLogs: TimeLog[],
     currentUser: User
-): Promise<{ newLogs: TimeLog[], count: number }> => {
+): Promise<{ uniqueLogs: TimeLog[], duplicateLogs: TimeLog[] }> => {
+    // Security: Basic file validation
+    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+        throw new Error("Invalid file type. Only Excel or CSV files are allowed.");
+    }
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        throw new Error("File is too large. Maximum size is 5MB.");
+    }
+
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { cellDates: true });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as (string | number | Date | undefined)[][];
 
     if (jsonData.length < 3) throw new Error("Format not recognized");
 
@@ -89,8 +145,8 @@ export const parseTimesheetImport = async (
         catHeaders[i] = lastCat;
     }
 
-    const newLogs: TimeLog[] = [];
-    let count = 0;
+    const uniqueLogs: TimeLog[] = [];
+    const duplicateLogs: TimeLog[] = [];
 
     for (let i = 2; i < jsonData.length; i++) {
         const row = jsonData[i];
@@ -114,7 +170,7 @@ export const parseTimesheetImport = async (
             const val = row[j];
             if (val === undefined || val === null || val === '') continue;
 
-            const numVal = parseFloat(val);
+            const numVal = parseFloat(String(val));
             if (isNaN(numVal) || numVal <= 0) continue;
 
             const catName = catHeaders[j];
@@ -136,43 +192,51 @@ export const parseTimesheetImport = async (
 
             const checkSubId = subCategoryId === 'general' ? '' : subCategoryId;
 
-            // Check existence in both existing logs AND newly parsed logs to avoid dupes in same import
-            const exists = existingLogs.some(l =>
+            const existsInDB = existingLogs.some(l =>
                 l.userId === currentUser.id &&
                 l.date === dateStr &&
                 l.categoryId === category.id &&
                 (l.subCategoryId === checkSubId || (!l.subCategoryId && checkSubId === ''))
-            ) || newLogs.some(l => 
+            );
+            
+            const existsInFile = uniqueLogs.some(l => 
+                l.date === dateStr && 
+                l.categoryId === category.id && 
+                l.subCategoryId === checkSubId
+            ) || duplicateLogs.some(l => 
                 l.date === dateStr && 
                 l.categoryId === category.id && 
                 l.subCategoryId === checkSubId
             );
 
-            if (!exists) {
-                let duration = numVal;
-                let logCount: number | undefined = undefined;
+            let duration = numVal;
+            let logCount: number | undefined = undefined;
 
-                if (subCategoryObj && (subCategoryObj.minutes || 0) > 0) {
-                    logCount = numVal;
-                    duration = numVal * subCategoryObj.minutes!;
-                }
+            if (subCategoryObj && (subCategoryObj.minutes || 0) > 0) {
+                logCount = numVal;
+                duration = numVal * subCategoryObj.minutes!;
+            }
 
-                newLogs.push({
-                    id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}_${j}`,
-                    userId: currentUser.id,
-                    date: dateStr,
-                    categoryId: category.id,
-                    subCategoryId: checkSubId,
-                    startTime: '09:00',
-                    endTime: '10:00',
-                    durationMinutes: duration,
-                    count: logCount,
-                    notes: 'Imported'
-                });
-                count++;
+            const newLog: TimeLog = {
+                id: `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}_${j}`,
+                userId: currentUser.id,
+                date: dateStr,
+                categoryId: category.id,
+                subCategoryId: checkSubId,
+                startTime: '09:00',
+                endTime: '10:00',
+                durationMinutes: duration,
+                count: logCount,
+                notes: 'Imported'
+            };
+
+            if (existsInDB || existsInFile) {
+                duplicateLogs.push(newLog);
+            } else {
+                uniqueLogs.push(newLog);
             }
         }
     }
 
-    return { newLogs, count };
+    return { uniqueLogs, duplicateLogs };
 };

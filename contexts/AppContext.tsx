@@ -1,23 +1,26 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Category, TimeLog, User, RecurringTask, Team, UserRole, DayConfig } from '../types';
-import { INITIAL_CATEGORIES, MOCK_LOGS, INITIAL_USERS, INITIAL_TEAMS } from '../constants';
-import { saveToLocalStorage, loadFromLocalStorage, getLocalDateStr } from '../utils/storage';
+import { Category, TimeLog, User, RecurringTask, Team, UserRole, DayConfig, DashboardWidget } from '../types';
+import { INITIAL_CATEGORIES, MOCK_LOGS, INITIAL_USERS, INITIAL_TEAMS, DEFAULT_WIDGETS } from '../constants';
+import { loadFromLocalStorage, getLocalDateStr, debouncedSave } from '../utils/storage';
 
 interface AppContextType {
   currentUser: User;
   users: User[];
   categories: Category[];
   logs: TimeLog[];
+  logsByDate: Record<string, TimeLog[]>;
   recurringTasks: RecurringTask[];
   teams: Team[];
   dayConfigs: DayConfig[];
+  dashboardWidgets: DashboardWidget[];
   setCurrentUser: (user: User) => void;
   updateUser: (user: User) => void;
   addUser: (user: User) => void;
   deleteUser: (id: string) => void;
   login: (email: string) => boolean;
   addLog: (log: TimeLog) => void;
+  batchAddLogs: (logs: TimeLog[]) => void;
   updateLog: (log: TimeLog) => void;
   deleteLog: (id: string) => void;
   addCategory: (category: Category) => void;
@@ -30,6 +33,7 @@ interface AppContextType {
   joinTeam: (code: string) => boolean;
   deleteTeam: (id: string) => void;
   updateDayConfig: (config: DayConfig) => void;
+  updateDashboardWidgets: (widgets: DashboardWidget[]) => void;
   resetData: () => void;
   resetTimesheet: () => void;
 }
@@ -37,10 +41,11 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // Helper hook for debounced effect
-const useDebouncedEffect = (effect: () => void, deps: any[], delay: number) => {
+const useDebouncedEffect = (effect: () => void, deps: React.DependencyList, delay: number) => {
   useEffect(() => {
     const handler = setTimeout(() => effect(), delay);
     return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, delay]);
 };
 
@@ -65,6 +70,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadFromLocalStorage('logs', MOCK_LOGS)
   );
 
+  const logsByDate = useMemo(() => {
+    const map: Record<string, TimeLog[]> = {};
+    logs.forEach(log => {
+        if (!map[log.date]) map[log.date] = [];
+        map[log.date].push(log);
+    });
+    return map;
+  }, [logs]);
+
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>(() => 
     loadFromLocalStorage('recurringTasks', [])
   );
@@ -77,10 +91,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadFromLocalStorage('dayConfigs', [])
   );
 
+  const [dashboardWidgets, setDashboardWidgets] = useState<DashboardWidget[]>(() => 
+    loadFromLocalStorage('dashboardWidgets', DEFAULT_WIDGETS)
+  );
+
   // Debounce storage writes
-  useDebouncedEffect(() => {
-    saveToLocalStorage('users', users);
-  }, [users], 1000);
+  useEffect(() => {
+    debouncedSave('users', users);
+  }, [users]);
 
   // Sync currentUser with users array if updated
   useDebouncedEffect(() => {
@@ -93,25 +111,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [currentUser], 500);
 
-  useDebouncedEffect(() => {
-    saveToLocalStorage('categories', categories);
-  }, [categories], 1000);
+  useEffect(() => {
+    debouncedSave('categories', categories);
+  }, [categories]);
 
-  useDebouncedEffect(() => {
-    saveToLocalStorage('logs', logs);
-  }, [logs], 1000);
+  useEffect(() => {
+    debouncedSave('logs', logs);
+  }, [logs]);
 
-  useDebouncedEffect(() => {
-    saveToLocalStorage('recurringTasks', recurringTasks);
-  }, [recurringTasks], 1000);
+  useEffect(() => {
+    debouncedSave('recurringTasks', recurringTasks);
+  }, [recurringTasks]);
 
-  useDebouncedEffect(() => {
-    saveToLocalStorage('teams', teams);
-  }, [teams], 1000);
+  useEffect(() => {
+    debouncedSave('teams', teams);
+  }, [teams]);
 
-  useDebouncedEffect(() => {
-    saveToLocalStorage('dayConfigs', dayConfigs);
-  }, [dayConfigs], 1000);
+  useEffect(() => {
+    debouncedSave('dayConfigs', dayConfigs);
+  }, [dayConfigs]);
+
+  useEffect(() => {
+    debouncedSave('dashboardWidgets', dashboardWidgets);
+  }, [dashboardWidgets]);
 
 
   const updateUser = useCallback((updatedUser: User) => {
@@ -141,6 +163,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Log Management
   const addLog = useCallback((log: TimeLog) => {
     setLogs(prev => [...prev, log]);
+  }, []);
+
+  const batchAddLogs = useCallback((newLogs: TimeLog[]) => {
+    setLogs(prev => [...prev, ...newLogs]);
   }, []);
 
   const updateLog = useCallback((updatedLog: TimeLog) => {
@@ -190,6 +216,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     start.setHours(0,0,0,0);
     end.setHours(23,59,59,999);
 
+    const startStr = getLocalDateStr(start);
+    const endStr = getLocalDateStr(end);
+
+    // Pre-compute existing logs for O(1) lookup
+    const existingLogKeys = new Set(
+      logs
+        .filter(l => l.userId === currentUser.id && l.date >= startStr && l.date <= endStr)
+        .map(l => `${l.date}_${l.categoryId}_${l.subCategoryId || 'general'}`)
+    );
+
     const loop = new Date(start);
     while (loop <= end) {
       const dateStr = getLocalDateStr(loop);
@@ -213,30 +249,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (shouldApply) {
           const lookupSubId = task.subCategoryId || 'general';
-          
-          // CRITICAL FIX: Added userId check to prevent false positives from other users' logs
-          const exists = logs.some(l => 
-              l.userId === currentUser.id &&
-              l.date === dateStr &&
-              l.categoryId === task.categoryId &&
-              (l.subCategoryId === lookupSubId || (!l.subCategoryId && lookupSubId === 'general'))
-          );
-          
-          const existsInBatch = newLogs.some(l => 
-              l.date === dateStr && 
-              l.categoryId === task.categoryId && 
-              l.subCategoryId === task.subCategoryId
-          );
+          const key = `${dateStr}_${task.categoryId}_${lookupSubId}`;
 
-          if (!exists && !existsInBatch) {
+          if (!existingLogKeys.has(key)) {
+              existingLogKeys.add(key); // Add to set to prevent duplicates in the same batch
               newLogs.push({
                 id: `log_auto_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
                 userId: currentUser.id,
                 date: dateStr,
                 categoryId: task.categoryId,
                 subCategoryId: task.subCategoryId,
-                startTime: '09:00', 
-                endTime: '10:00', 
+                startTime: task.startTime || '09:00', 
+                endTime: task.endTime || '10:00', 
                 durationMinutes: task.durationMinutes,
                 count: task.count,
                 notes: task.notes || 'Recurring Task'
@@ -267,6 +291,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return [...prev, config];
         }
     });
+  }, []);
+
+  const updateDashboardWidgets = useCallback((widgets: DashboardWidget[]) => {
+    setDashboardWidgets(widgets);
   }, []);
 
   // Team Management
@@ -356,15 +384,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     users,
     categories,
     logs,
+    logsByDate,
     teams,
     recurringTasks,
     dayConfigs,
+    dashboardWidgets,
     setCurrentUser,
     updateUser,
     addUser,
     deleteUser,
     login,
     addLog,
+    batchAddLogs,
     updateLog,
     deleteLog,
     addCategory,
@@ -377,14 +408,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     joinTeam,
     deleteTeam,
     updateDayConfig,
+    updateDashboardWidgets,
     resetData,
     resetTimesheet
   }), [
-    currentUser, users, categories, logs, recurringTasks, teams, dayConfigs,
-    updateUser, addUser, deleteUser, login, addLog, updateLog, deleteLog,
+    currentUser, users, categories, logs, logsByDate, recurringTasks, teams, dayConfigs, dashboardWidgets,
+    updateUser, addUser, deleteUser, login, addLog, batchAddLogs, updateLog, deleteLog,
     addCategory, updateCategory, deleteCategory,
     addRecurringTask, deleteRecurringTask, applyRecurringTasks,
-    createTeam, joinTeam, deleteTeam, updateDayConfig,
+    createTeam, joinTeam, deleteTeam, updateDayConfig, updateDashboardWidgets,
     resetData, resetTimesheet
   ]);
 

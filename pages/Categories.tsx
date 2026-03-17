@@ -6,6 +6,8 @@ import { Category } from '../types';
 import { Plus, X, Upload, Download, Layers, Search, Check } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { CategoryCard, PRESET_COLORS } from '../components/admin/CategoryCard';
+import { EmptyState } from '../components/ui/EmptyState';
+import { CategoryExportModal, CategoryImportModal } from '../components/admin/CategoryImportExportModals';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -18,6 +20,10 @@ const CategoryManagement: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [exportSummary, setExportSummary] = useState<{ categoryCount: number, subCategoryCount: number } | null>(null);
+  const [importSummary, setImportSummary] = useState<{ newCategories: number, newSubCategories: number } | null>(null);
+  const [pendingCategories, setPendingCategories] = useState<Category[] | null>(null);
 
   useEffect(() => setCurrentPage(1), [searchTerm]);
 
@@ -50,7 +56,15 @@ const CategoryManagement: React.FC = () => {
       showToast('Category created', 'success');
   };
 
-  const handleExport = () => {
+  const handleExportClick = () => {
+      const subCount = filteredCategories.reduce((acc, c) => acc + c.subCategories.length, 0);
+      setExportSummary({
+          categoryCount: filteredCategories.length,
+          subCategoryCount: subCount
+      });
+  };
+
+  const confirmExport = () => {
       const data = filteredCategories.flatMap(c => {
           if (c.subCategories.length === 0) {
               return [{
@@ -70,20 +84,29 @@ const CategoryManagement: React.FC = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Categories");
       XLSX.writeFile(wb, `Categories_Export.xlsx`);
       showToast('Exported successfully', 'success');
+      setExportSummary(null);
   };
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
       try {
+          if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+              throw new Error("Invalid file type. Only Excel or CSV files are allowed.");
+          }
+          if (file.size > 5 * 1024 * 1024) { // 5MB limit
+              throw new Error("File is too large. Maximum size is 5MB.");
+          }
+
           const buffer = await file.arrayBuffer();
           const wb = XLSX.read(buffer);
           const ws = wb.Sheets[wb.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json(ws) as any[];
+          const json = XLSX.utils.sheet_to_json(ws) as Record<string, string | number>[];
           
           if (json.length === 0) {
               showToast('File is empty', 'info');
+              if (fileInputRef.current) fileInputRef.current.value = '';
               return;
           }
 
@@ -119,14 +142,33 @@ const CategoryManagement: React.FC = () => {
                       cat.subCategories.push({
                           id: `imported_sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                           name: sName,
-                          minutes: parseInt(timeVal) || 0
+                          minutes: parseInt(String(timeVal)) || 0
                       });
                       newSubs++;
                   }
               }
           }
 
-          for (const cat of tempCats) {
+          if (newCats === 0 && newSubs === 0) {
+              showToast('No new data found to import', 'info');
+              if (fileInputRef.current) fileInputRef.current.value = '';
+              return;
+          }
+
+          setPendingCategories(tempCats);
+          setImportSummary({ newCategories: newCats, newSubCategories: newSubs });
+
+      } catch (error: unknown) {
+          console.error(error);
+          const e = error as Error;
+          showToast(e.message || 'Error parsing Excel file', 'error');
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+  };
+
+  const confirmImport = () => {
+      if (pendingCategories) {
+          for (const cat of pendingCategories) {
               const original = categories.find(c => c.id === cat.id);
               if (!original) {
                   addCategory(cat);
@@ -136,19 +178,11 @@ const CategoryManagement: React.FC = () => {
                   }
               }
           }
-
-          if (newCats > 0 || newSubs > 0) {
-              showToast(`Imported ${newCats} categories and ${newSubs} sub-categories`, 'success');
-          } else {
-              showToast('No new data found to import', 'info');
-          }
-
-      } catch (error) {
-          console.error(error);
-          showToast('Error parsing Excel file', 'error');
-      } finally {
-          if (fileInputRef.current) fileInputRef.current.value = '';
+          showToast(`Imported ${importSummary?.newCategories} categories and ${importSummary?.newSubCategories} sub-categories`, 'success');
       }
+      setImportSummary(null);
+      setPendingCategories(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -220,30 +254,64 @@ const CategoryManagement: React.FC = () => {
           </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4 items-center sticky top-2 z-20 backdrop-blur-md bg-opacity-90">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4 items-center relative lg:sticky lg:top-2 z-20 backdrop-blur-md bg-opacity-90 transition-all duration-300">
           <div className="relative flex-1 w-full">
               <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
               <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-medium text-slate-700 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-slate-700 outline-none transition-all" placeholder="Search categories..." />
           </div>
           <div className="flex gap-2 w-full md:w-auto overflow-x-auto">
-              <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".xlsx, .xls" />
+              <input type="file" ref={fileInputRef} onChange={handleImportFile} className="hidden" accept=".xlsx, .xls" />
               <button onClick={() => fileInputRef.current?.click()} className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Upload size={16} /> Import</button>
-              <button onClick={handleExport} className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Download size={16} /> Export</button>
+              <button onClick={handleExportClick} className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Download size={16} /> Export</button>
               <div className="w-px bg-slate-200 dark:bg-slate-700 mx-1 h-8 self-center"></div>
               <button onClick={() => setIsCreateOpen(true)} className="px-6 py-3 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap transform hover:-translate-y-0.5 hover:shadow-xl bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none"><Plus size={18} strokeWidth={3} /> New Category</button>
           </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-          {paginatedCategories.map(cat => (
-            <CategoryCard 
-                key={cat.id} 
-                category={cat} 
-                updateCategory={updateCategory}
-                onDelete={() => deleteCategory(cat.id)}
-            />
-          ))}
+          {paginatedCategories.length === 0 ? (
+              <div className="col-span-full">
+                  <EmptyState 
+                      icon={Layers} 
+                      title="No Categories Found" 
+                      description={searchTerm ? `No categories match "${searchTerm}"` : "Create your first category to start organizing your time."}
+                      action={!searchTerm && (
+                          <button onClick={() => setIsCreateOpen(true)} className="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none">
+                              Create Category
+                          </button>
+                      )}
+                  />
+              </div>
+          ) : (
+              paginatedCategories.map(cat => (
+                <CategoryCard 
+                    key={cat.id} 
+                    category={cat} 
+                    updateCategory={updateCategory}
+                    onDelete={() => deleteCategory(cat.id)}
+                />
+              ))
+          )}
       </div>
+
+      {/* Modals */}
+      {exportSummary && (
+          <CategoryExportModal 
+              isOpen={!!exportSummary}
+              onClose={() => setExportSummary(null)}
+              onConfirm={confirmExport}
+              summary={exportSummary}
+          />
+      )}
+      
+      {importSummary && (
+          <CategoryImportModal 
+              isOpen={!!importSummary}
+              onClose={() => { setImportSummary(null); setPendingCategories(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+              onConfirm={confirmImport}
+              summary={importSummary}
+          />
+      )}
     </div>
   );
 };
