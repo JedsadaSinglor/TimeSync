@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { FileSpreadsheet, Upload, Calendar, Clock, CheckCircle, AlertCircle, Check } from 'lucide-react';
+import { FileSpreadsheet, Upload, Calendar, Clock, CheckCircle, AlertCircle, Check, Tag } from 'lucide-react';
 
 interface ExportModalProps {
     isOpen: boolean;
@@ -61,6 +61,7 @@ interface ImportModalProps {
     summary: {
         count: number;
         duplicateCount: number;
+        newCategoryCount: number;
         startDate: string;
         endDate: string;
     };
@@ -78,7 +79,7 @@ export const ImportConfirmationModal: React.FC<ImportModalProps> = ({ isOpen, on
                 </div>
                 <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2 text-center md:text-left">Confirm Import</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 text-center md:text-left">
-                    Found <strong>{summary.count}</strong> new entries to import.
+                    Found <strong>{summary.count}</strong> new entries and <strong>{summary.newCategoryCount}</strong> new categories to import.
                 </p>
                 
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6 space-y-3">
@@ -89,6 +90,10 @@ export const ImportConfirmationModal: React.FC<ImportModalProps> = ({ isOpen, on
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><CheckCircle size={14}/> Entries</span>
                         <span className="font-bold text-slate-700 dark:text-slate-200">{summary.count}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Tag size={14}/> New Categories</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{summary.newCategoryCount}</span>
                     </div>
                 </div>
                 

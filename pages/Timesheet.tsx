@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
-import { DayConfig, TimeLog, CategoryCombo } from '../types';
+import { DayConfig, TimeLog, CategoryCombo, Category } from '../types';
 import { ChevronLeft, ChevronRight, Calendar, List, Grid3X3, Download, Upload, LayoutGrid, CalendarClock, Eraser, AlertTriangle, Filter, CheckSquare, Square, ChevronDown, ChevronRight as ChevronIcon, Settings, Table, AlignJustify } from 'lucide-react';
 import { getLocalDateStr } from '../utils/storage';
 import { getStartOfWeek, exportTimesheetToExcel, parseTimesheetImport, downloadTemplate } from '../utils/timesheetHelpers';
@@ -18,7 +18,7 @@ type ViewMode = 'DAILY' | 'WEEK' | 'MONTH';
 type LayoutMode = 'TABLE' | 'LIST';
 
 const TimesheetPage: React.FC = () => {
-    const { logs, logsByDate, categories, addLog, batchAddLogs, updateLog, deleteLog, currentUser, applyRecurringTasks, resetTimesheet, dayConfigs, updateDayConfig, categoryCombos } = useApp();
+    const { logs, logsByDate, categories, addLog, batchAddLogs, updateLog, deleteLog, currentUser, applyRecurringTasks, resetTimesheet, dayConfigs, updateDayConfig, categoryCombos, addCategory } = useApp();
     const { showToast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
     
@@ -60,8 +60,8 @@ const TimesheetPage: React.FC = () => {
     
     // Import/Export State
     const [exportSummary, setExportSummary] = useState<{ startDate: string; endDate: string; totalDays: number; totalHours: number; categoryCount: number } | null>(null);
-    const [importSummary, setImportSummary] = useState<{ count: number; duplicateCount: number; startDate: string; endDate: string } | null>(null);
-    const [pendingImportLogs, setPendingImportLogs] = useState<{ unique: TimeLog[], duplicates: TimeLog[] }>({ unique: [], duplicates: [] });
+    const [importSummary, setImportSummary] = useState<{ count: number; duplicateCount: number; newCategoryCount: number; startDate: string; endDate: string } | null>(null);
+    const [pendingImportLogs, setPendingImportLogs] = useState<{ unique: TimeLog[], duplicates: TimeLog[], newCategories: Category[] }>({ unique: [], duplicates: [], newCategories: [] });
 
     // Filter States
     const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<string>>(new Set());
@@ -212,10 +212,10 @@ const TimesheetPage: React.FC = () => {
             return;
         }
         try {
-            const { uniqueLogs, duplicateLogs } = await parseTimesheetImport(file, categories, logs, currentUser);
-            console.log('Parsed import:', { unique: uniqueLogs.length, duplicates: duplicateLogs.length });
+            const { uniqueLogs, duplicateLogs, newCategories } = await parseTimesheetImport(file, categories, logs, currentUser);
+            console.log('Parsed import:', { unique: uniqueLogs.length, duplicates: duplicateLogs.length, newCategories: newCategories.length });
             
-            if (uniqueLogs.length === 0 && duplicateLogs.length === 0) {
+            if (uniqueLogs.length === 0 && duplicateLogs.length === 0 && newCategories.length === 0) {
                 showToast('No valid entries found.', 'info');
                 if (fileInputRef.current) fileInputRef.current.value = '';
                 return;
@@ -224,13 +224,14 @@ const TimesheetPage: React.FC = () => {
             // Calculate summary
             const allLogs = [...uniqueLogs, ...duplicateLogs];
             const dates = allLogs.map(l => l.date).sort();
-            const startDate = dates[0];
-            const endDate = dates[dates.length - 1];
+            const startDate = dates.length > 0 ? dates[0] : '';
+            const endDate = dates.length > 0 ? dates[dates.length - 1] : '';
 
-            setPendingImportLogs({ unique: uniqueLogs, duplicates: duplicateLogs });
+            setPendingImportLogs({ unique: uniqueLogs, duplicates: duplicateLogs, newCategories: newCategories });
             const summary = {
                 count: uniqueLogs.length,
                 duplicateCount: duplicateLogs.length,
+                newCategoryCount: newCategories.length,
                 startDate,
                 endDate
             };
@@ -246,17 +247,20 @@ const TimesheetPage: React.FC = () => {
     };
 
     const confirmImport = (skipDuplicates: boolean) => {
+        // Add new categories
+        pendingImportLogs.newCategories.forEach(cat => addCategory(cat));
+        
         const logsToAdd = skipDuplicates ? pendingImportLogs.unique : [...pendingImportLogs.unique, ...pendingImportLogs.duplicates];
         
         if (logsToAdd.length > 0) {
             batchAddLogs(logsToAdd);
-            showToast(`Successfully imported ${logsToAdd.length} entries`, 'success');
+            showToast(`Successfully imported ${logsToAdd.length} entries and ${pendingImportLogs.newCategories.length} categories`, 'success');
         } else {
-            showToast('No entries imported', 'info');
+            showToast(`Imported ${pendingImportLogs.newCategories.length} categories`, 'info');
         }
         
         setImportSummary(null);
-        setPendingImportLogs({ unique: [], duplicates: [] });
+        setPendingImportLogs({ unique: [], duplicates: [], newCategories: [] });
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
   
@@ -380,7 +384,7 @@ const TimesheetPage: React.FC = () => {
         {importSummary && (
             <ImportConfirmationModal 
                 isOpen={!!importSummary}
-                onClose={() => { setImportSummary(null); setPendingImportLogs({ unique: [], duplicates: [] }); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                onClose={() => { setImportSummary(null); setPendingImportLogs({ unique: [], duplicates: [], newCategories: [] }); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                 onConfirm={confirmImport}
                 summary={importSummary}
             />

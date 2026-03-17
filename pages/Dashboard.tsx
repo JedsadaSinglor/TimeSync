@@ -102,7 +102,7 @@ const Dashboard: React.FC = () => {
               <Sparkles size={12} className="text-indigo-300" />
               <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric'})}</span>
             </div>
-            <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.85] uppercase">
+            <h1 className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter leading-[0.85] uppercase">
               Your <span className="text-indigo-400">Flow</span><br />
               Analytics
             </h1>
@@ -126,20 +126,20 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Quick Stats Bar - Minimal Utility */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {[
           { label: 'Total Hours', value: totalHours.toFixed(1), icon: Clock, color: 'indigo', bg: 'bg-indigo-50 dark:bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400' },
           { label: 'Daily Avg', value: stats.avgHoursPerDay.toFixed(1) + 'h', icon: Activity, color: 'emerald', bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400' },
           { label: 'Top Focus', value: stats.topCat.name, icon: Target, color: 'orange', bg: 'bg-orange-50 dark:bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400' },
           { label: 'Active Days', value: stats.activeDays, icon: Calendar, color: 'blue', bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400' },
         ].map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all">
-            <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-              <stat.icon size={20} />
+          <div key={i} className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between group hover:shadow-md transition-all">
+            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
+              <stat.icon size={18} className="md:w-5 md:h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-              <p className="text-2xl font-black text-slate-800 dark:text-white truncate">{stat.value}</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <p className="text-xl md:text-2xl font-black text-slate-800 dark:text-white truncate">{stat.value}</p>
             </div>
           </div>
         ))}

@@ -344,18 +344,18 @@ const CategoryManagement: React.FC = () => {
 
       <CategoryComboManager isOpen={isComboModalOpen} onClose={() => setIsComboModalOpen(false)} />
 
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4 items-center relative lg:sticky lg:top-2 z-20 backdrop-blur-md bg-opacity-90 transition-all duration-300">
+      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row gap-4 items-center relative lg:sticky lg:top-2 z-20 backdrop-blur-md bg-opacity-90 transition-all duration-300">
           <div className="relative flex-1 w-full">
               <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
               <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-medium text-slate-700 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-slate-700 outline-none transition-all" placeholder="Search categories..." />
           </div>
-          <div className="flex gap-2 w-full md:w-auto overflow-x-auto">
+          <div className="flex gap-2 w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 lg:pb-0">
               <input type="file" ref={fileInputRef} onChange={handleImportFile} className="hidden" accept=".xlsx, .xls" />
-              <button onClick={() => fileInputRef.current?.click()} className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Upload size={16} /> Import</button>
-              <button onClick={handleExportClick} className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Download size={16} /> Export</button>
-              <button onClick={() => setIsComboModalOpen(true)} className="px-4 py-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors flex items-center gap-2 whitespace-nowrap"><Bookmark size={16} /> Category Combos</button>
-              <div className="w-px bg-slate-200 dark:bg-slate-700 mx-1 h-8 self-center"></div>
-              <button onClick={() => setIsCreateOpen(true)} className="px-6 py-3 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap transform hover:-translate-y-0.5 hover:shadow-xl bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none"><Plus size={18} strokeWidth={3} /> New Category</button>
+              <button onClick={() => fileInputRef.current?.click()} className="px-3 sm:px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[10px] sm:text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Upload size={16} /> Import</button>
+              <button onClick={handleExportClick} className="px-3 sm:px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-[10px] sm:text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"><Download size={16} /> Export</button>
+              <button onClick={() => setIsComboModalOpen(true)} className="px-3 sm:px-4 py-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] sm:text-xs rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors flex items-center gap-2 whitespace-nowrap"><Bookmark size={16} /> Combos</button>
+              <div className="w-px bg-slate-200 dark:bg-slate-700 mx-1 h-8 self-center hidden lg:block"></div>
+              <button onClick={() => setIsCreateOpen(true)} className="px-4 sm:px-6 py-3 text-white font-bold text-[10px] sm:text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap transform hover:-translate-y-0.5 hover:shadow-xl bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none"><Plus size={18} strokeWidth={3} /> New Category</button>
           </div>
       </div>
 

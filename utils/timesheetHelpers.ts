@@ -116,7 +116,7 @@ export const parseTimesheetImport = async (
     categories: Category[],
     existingLogs: TimeLog[],
     currentUser: User
-): Promise<{ uniqueLogs: TimeLog[], duplicateLogs: TimeLog[] }> => {
+): Promise<{ uniqueLogs: TimeLog[], duplicateLogs: TimeLog[], newCategories: Category[] }> => {
     // Security: Basic file validation
     if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
         throw new Error("Invalid file type. Only Excel or CSV files are allowed.");
@@ -147,6 +147,7 @@ export const parseTimesheetImport = async (
 
     const uniqueLogs: TimeLog[] = [];
     const duplicateLogs: TimeLog[] = [];
+    const newCategories: Category[] = [];
 
     for (let i = 2; i < jsonData.length; i++) {
         const row = jsonData[i];
@@ -177,8 +178,19 @@ export const parseTimesheetImport = async (
             const subName = subHeadersRaw[j];
             if (!catName) continue;
 
-            const category = categories.find(c => c.name.toLowerCase() === String(catName).toLowerCase().trim());
-            if (!category) continue;
+            let category = categories.find(c => c.name.toLowerCase() === String(catName).toLowerCase().trim());
+            if (!category) {
+                category = newCategories.find(c => c.name.toLowerCase() === String(catName).toLowerCase().trim());
+                if (!category) {
+                    category = {
+                        id: `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        name: String(catName).trim(),
+                        color: '#CCCCCC', // Default color
+                        subCategories: []
+                    };
+                    newCategories.push(category);
+                }
+            }
 
             let subCategoryId = 'general';
             let subCategoryObj: SubCategory | undefined;
@@ -187,7 +199,11 @@ export const parseTimesheetImport = async (
             if (sNameClean && sNameClean.toLowerCase() !== 'general') {
                 subCategoryObj = category.subCategories.find(s => s.name.toLowerCase() === sNameClean.toLowerCase());
                 if (subCategoryObj) subCategoryId = subCategoryObj.id;
-                else continue;
+                else {
+                    // Optionally create subcategory too? User only asked for Categories.
+                    // Let's stick to categories for now.
+                    continue;
+                }
             }
 
             const checkSubId = subCategoryId === 'general' ? '' : subCategoryId;
@@ -238,5 +254,5 @@ export const parseTimesheetImport = async (
         }
     }
 
-    return { uniqueLogs, duplicateLogs };
+    return { uniqueLogs, duplicateLogs, newCategories };
 };

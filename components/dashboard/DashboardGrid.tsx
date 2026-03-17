@@ -68,19 +68,22 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     setShowAddMenu(false);
   };
 
-  const layout = useMemo(() => widgets.map(w => ({
-    i: w.id,
-    x: w.x,
-    y: w.y,
-    w: w.w,
-    h: w.h,
-    minW: 1,
-    minH: 1,
-  })), [widgets]);
+  const layouts = useMemo(() => {
+    const lgLayout = widgets.map(w => ({
+      i: w.id, x: w.x, y: w.y, w: w.w, h: w.h, minW: 1, minH: 1
+    }));
+    
+    // For mobile (xs/xxs), we want widgets to be full width (1 col)
+    const mobileLayout = widgets.map((w, idx) => ({
+      i: w.id, x: 0, y: idx * 2, w: 1, h: Math.max(w.h, 2), minW: 1, minH: 1
+    }));
+
+    return { lg: lgLayout, md: lgLayout, sm: lgLayout, xs: mobileLayout, xxs: mobileLayout };
+  }, [widgets]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-1">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
             <LayoutIcon size={24} />
@@ -160,10 +163,10 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
         </div>
       )}
 
-      <div className={`-mx-4 ${isEditing ? 'cursor-default' : ''}`}>
+      <div className={`-mx-2 md:-mx-4 ${isEditing ? 'cursor-default' : ''}`}>
         <ResponsiveGridLayout
           className="layout"
-          layouts={{ lg: layout }}
+          layouts={layouts}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 3, md: 3, sm: 2, xs: 1, xxs: 1 }}
           rowHeight={150}
@@ -171,7 +174,8 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
           isDraggable={isEditing}
           isResizable={isEditing}
           onLayoutChange={handleLayoutChange}
-          margin={[24, 24]}
+          margin={[16, 16]}
+          containerPadding={[8, 8]}
         >
           {widgets.map(w => (
             <div key={w.id}>

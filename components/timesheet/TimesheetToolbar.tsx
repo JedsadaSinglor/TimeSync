@@ -62,27 +62,27 @@ export const TimesheetToolbar: React.FC<TimesheetToolbarProps> = ({
 
     return (
         <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4 relative z-20 sticky top-4">
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
                 {/* Left: Date Navigation */}
-                <div className="flex items-center gap-3 w-full xl:w-auto">
-                    <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-100 dark:border-slate-700/50 w-full xl:w-auto justify-between">
+                <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto">
+                    <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-100 dark:border-slate-700/50 flex-1 lg:w-auto justify-between">
                         <button onClick={() => navigate(-1)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-500 transition-all active:scale-95"><ChevronLeft size={18}/></button>
-                        <div className="flex items-center gap-2 min-w-[150px] justify-center px-2">
-                            <Calendar size={16} className="text-indigo-500" />
-                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{label}</span>
+                        <div className="flex items-center gap-2 min-w-[120px] sm:min-w-[150px] justify-center px-2">
+                            <Calendar size={16} className="text-indigo-500 hidden sm:block" />
+                            <span className="font-bold text-slate-700 dark:text-slate-200 text-xs sm:text-sm whitespace-nowrap">{label}</span>
                         </div>
                         <button onClick={() => navigate(1)} className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-xl text-slate-500 transition-all active:scale-95"><ChevronRight size={18}/></button>
                     </div>
-                    <button onClick={() => setAnchorDate(new Date())} className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-sm font-bold rounded-xl hover:bg-indigo-100 dark:bg-indigo-500/20 transition-colors shrink-0">Today</button>
+                    <button onClick={() => setAnchorDate(new Date())} className="px-3 sm:px-4 py-2.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm font-bold rounded-xl hover:bg-indigo-100 dark:bg-indigo-500/20 transition-colors shrink-0">Today</button>
                 </div>
 
                 {/* Center/Right: View Controls & Actions */}
-                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto justify-start lg:justify-end">
                     {/* View Mode */}
                     <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
-                        <button onClick={() => setViewMode('DAILY')} className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${viewMode === 'DAILY' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><List size={14} /> Daily</button>
-                        <button onClick={() => setViewMode('WEEK')} className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${viewMode === 'WEEK' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Grid3X3 size={14} /> Weekly</button>
-                        <button onClick={() => setViewMode('MONTH')} className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${viewMode === 'MONTH' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><LayoutGrid size={14} /> Monthly</button>
+                        <button onClick={() => setViewMode('DAILY')} className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${viewMode === 'DAILY' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><List size={14} /> Daily</button>
+                        <button onClick={() => setViewMode('WEEK')} className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${viewMode === 'WEEK' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Grid3X3 size={14} /> Weekly</button>
+                        <button onClick={() => setViewMode('MONTH')} className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${viewMode === 'MONTH' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><LayoutGrid size={14} /> Monthly</button>
                     </div>
 
                     {/* Layout Mode */}
@@ -91,10 +91,10 @@ export const TimesheetToolbar: React.FC<TimesheetToolbarProps> = ({
                         <button onClick={() => setLayoutMode('LIST')} className={`p-2 rounded-lg transition-all ${layoutMode === 'LIST' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} title="List View"><AlignJustify size={16} /></button>
                     </div>
 
-                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
+                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 hidden lg:block mx-1" />
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-100 dark:border-slate-700/50 flex-wrap">
+                    <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-100 dark:border-slate-700/50 flex-1 sm:flex-none justify-between sm:justify-start">
                         {categoryCombos.length > 0 && (
                             <div className="relative">
                                 <button 

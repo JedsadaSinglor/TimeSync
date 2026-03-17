@@ -245,29 +245,29 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
           const isExpanded = expandedMobileRows.has(row.key);
           
           return (
-             <div key={row.key} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-all duration-300">
-                <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: row.category.color }}></div>
+             <div key={row.key} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-all duration-300">
+                <div className="absolute left-0 top-0 bottom-0 w-2" style={{ backgroundColor: row.category.color }}></div>
                 <div 
-                    className="flex justify-between items-center p-4 pl-5 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors"
+                    className="flex justify-between items-center p-5 pl-6 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50 transition-colors"
                     onClick={() => toggleMobileRow(row.key)}
                 >
-                   <div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{row.category.name}</div>
-                      <div className="text-base font-black text-slate-800 dark:text-white leading-tight">{row.subCategory.name}</div>
+                   <div className="flex-1 pr-4">
+                      <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-1">{row.category.name}</div>
+                      <div className="text-lg font-black text-slate-800 dark:text-white leading-tight">{row.subCategory.name}</div>
                    </div>
-                   <div className="flex items-center gap-3">
+                   <div className="flex items-center gap-4">
                         <div className="text-right">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase block">Total</span>
-                            <span className="text-base font-black text-slate-800 dark:text-white">{(rowTotal/60).toFixed(1)}</span>
+                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Total</span>
+                            <span className="text-lg font-black text-slate-800 dark:text-white">{(rowTotal/60).toFixed(1)}<span className="text-[10px] ml-0.5 text-slate-400">h</span></span>
                         </div>
-                        <div className={`p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-indigo-50 text-indigo-500 dark:bg-slate-700 dark:text-indigo-400' : ''}`}>
-                            <ChevronDown size={18} />
+                        <div className={`w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 transition-all duration-300 ${isExpanded ? 'rotate-180 bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-400' : ''}`}>
+                            <ChevronDown size={20} />
                         </div>
                    </div>
                 </div>
                 
                 {isExpanded && (
-                    <div className="space-y-3 p-4 pl-5 pt-0 animate-fade-in border-t border-slate-100 dark:border-slate-800/50 mt-2">
+                    <div className="space-y-4 p-5 pl-6 pt-2 animate-fade-in border-t border-slate-100 dark:border-slate-800/50 mt-2">
                    {days.map((d) => {
                       const subId = row.subCategory.id === 'general' ? '' : row.subCategory.id;
                       const key = `${d.dateStr}_${row.category.id}_${subId || 'general'}`;
@@ -282,17 +282,17 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
                       }
 
                        return (
-                        <div key={d.dateStr} className={`flex items-center justify-between p-2 rounded-xl border ${d.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800' : 'border-slate-100 dark:border-slate-800'}`}>
-                           <div className="flex items-center gap-3 flex-1">
-                              <button onClick={() => onDaySettingsClick({ dateObj: d.dateObj, config: d.config })} className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors shrink-0">
-                                <Settings size={16}/>
+                        <div key={d.dateStr} className={`flex items-center justify-between p-3 rounded-2xl border ${d.isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800' : 'border-slate-100 dark:border-slate-800'}`}>
+                           <div className="flex items-center gap-4 flex-1">
+                              <button onClick={() => onDaySettingsClick({ dateObj: d.dateObj, config: d.config })} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors shrink-0">
+                                <Settings size={18}/>
                               </button>
                               <div className="flex flex-col">
-                                  <span className={`text-sm font-bold ${d.isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>{d.dayName}</span>
-                                  <span className="text-xs text-slate-400 font-medium">{d.shortDate}</span>
+                                  <span className={`text-sm font-black ${d.isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>{d.dayName}</span>
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{d.shortDate}</span>
                               </div>
                            </div>
-                           <div className="w-28 h-12 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 relative overflow-hidden shadow-sm">
+                           <div className="w-32 h-14 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 relative overflow-hidden shadow-sm">
                                <GridInputCell 
                                   value={displayValue} isQty={isQtyMode}
                                   onChange={(val) => handleCellChange(d.dateStr, row.category, row.subCategory, val)} 
