@@ -70,10 +70,10 @@ export const useDashboardStats = (
     const totalHours = (totalMinutes / 60);
     const prevTotalHours = (prevTotalMinutes / 60);
 
-    const activeDays = new Set(currentLogs.map(l => l.date)).size || 1;
-    const prevActiveDays = new Set(previousLogs.map(l => l.date)).size || 1;
-    const avgHoursPerDay = (totalHours / activeDays);
-    const prevAvgHoursPerDay = (prevTotalHours / prevActiveDays);
+    const activeDays = new Set(currentLogs.map(l => l.date)).size;
+    const prevActiveDays = new Set(previousLogs.map(l => l.date)).size;
+    const avgHoursPerDay = (totalHours / (activeDays || 1));
+    const prevAvgHoursPerDay = (prevTotalHours / (prevActiveDays || 1));
 
     const getTopCategory = (logData: typeof logs) => {
         const map: Record<string, number> = {};
@@ -136,7 +136,7 @@ export const useDashboardStats = (
                     keyName = sub ? sub.name : 'General';
                 }
                 if (typeof dataMap[key][keyName] !== 'number') dataMap[key][keyName] = 0;
-                dataMap[key][keyName] = (dataMap[key][keyName] as number) + (log.durationMinutes / 60);
+                dataMap[key][keyName] = (dataMap[key][keyName] as number) + log.durationMinutes;
             }
         });
         return Object.values(dataMap).sort((a, b) => String(a.dateStr).localeCompare(String(b.dateStr)));

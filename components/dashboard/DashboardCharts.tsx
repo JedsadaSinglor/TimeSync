@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, AreaChart, Area, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
@@ -38,6 +39,7 @@ export const TrendChart = ({ data, ready }: { data: any[], ready: boolean }) => 
         <Area 
           type="monotone" 
           dataKey="minutes" 
+          name="Total Time"
           stroke="#6366f1" 
           fillOpacity={1} 
           fill="url(#colorMinutes)" 
@@ -66,10 +68,10 @@ export const HourlyChart = ({ data, ready }: { data: any[], ready: boolean }) =>
           axisLine={false} 
           tickLine={false} 
           tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
-          tickFormatter={(val) => `${(val/60).toFixed(0)}h`}
+          tickFormatter={(val) => `${(val/60).toFixed(1)}h`}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
-        <Bar dataKey="minutes" fill="#8b5cf6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="minutes" name="Total Time" fill="#8b5cf6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -92,10 +94,10 @@ export const WeeklyChart = ({ data, ready }: { data: any[], ready: boolean }) =>
           axisLine={false} 
           tickLine={false} 
           tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
-          tickFormatter={(val) => `${(val/60).toFixed(0)}h`}
+          tickFormatter={(val) => `${(val/60).toFixed(1)}h`}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
-        <Bar dataKey="minutes" fill="#10b981" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="minutes" name="Total Time" fill="#10b981" radius={[6, 6, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -109,25 +111,33 @@ export const BreakdownChart = ({ data, stacks, ready }: { data: any[], stacks: s
       <BarChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-700/50" />
         <XAxis 
-          dataKey="name" 
+          dataKey="label" 
           axisLine={false} 
           tickLine={false} 
           tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} 
           dy={10} 
+          minTickGap={20}
         />
         <YAxis 
           axisLine={false} 
           tickLine={false} 
           tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
-          tickFormatter={(val) => `${(val/60).toFixed(0)}h`} 
+          tickFormatter={(val) => `${(val/60).toFixed(1)}h`} 
           allowDecimals={false}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
-        <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive={false} maxBarSize={60}>
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-          ))}
-        </Bar>
+        {stacks.map((stack, index) => (
+          <Bar 
+            key={stack} 
+            dataKey={stack} 
+            stackId="a" 
+            fill={COLORS[index % COLORS.length]} 
+            isAnimationActive={false} 
+            maxBarSize={80}
+            barSize={40}
+            radius={index === stacks.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
+          />
+        ))}
       </BarChart>
     </ResponsiveContainer>
   );
@@ -140,10 +150,10 @@ export const DistributionChart = ({ data, ready }: { data: any[], ready: boolean
       <PieChart>
         <Pie
           data={data}
-          cx="50%"
-          cy="45%"
-          innerRadius={60}
-          outerRadius={80}
+          cx="30%"
+          cy="50%"
+          innerRadius={65}
+          outerRadius={100}
           paddingAngle={5}
           dataKey="value"
           isAnimationActive={false}
@@ -154,15 +164,16 @@ export const DistributionChart = ({ data, ready }: { data: any[], ready: boolean
         </Pie>
         <Tooltip content={<CustomTooltip />} />
         <Legend 
-          layout="horizontal" 
-          verticalAlign="bottom" 
-          align="center" 
-          wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '10px' }} 
+          layout="vertical" 
+          verticalAlign="middle" 
+          align="right" 
+          wrapperStyle={{ fontSize: '13px', fontWeight: 600, paddingLeft: '20px' }} 
           iconType="circle" 
+          iconSize={12}
           formatter={(value, entry: any) => {
             const total = data.reduce((sum, d) => sum + d.value, 0);
             const percent = ((entry.payload.value / total) * 100).toFixed(1);
-            return <span className="text-slate-600 dark:text-slate-400">{value} ({percent}%)</span>;
+            return <span className="text-slate-700 dark:text-slate-300 ml-1">{value} ({percent}%)</span>;
           }}
         />
       </PieChart>

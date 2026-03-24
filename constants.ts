@@ -5,13 +5,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: 'w_hours', type: 'STATS_HOURS', title: 'Total Hours', x: 0, y: 0, w: 1, h: 1 },
   { id: 'w_avg', type: 'STATS_AVG', title: 'Daily Average', x: 1, y: 0, w: 1, h: 1 },
   { id: 'w_top', type: 'STATS_TOP', title: 'Top Category', x: 2, y: 0, w: 1, h: 1 },
-  { id: 'w_location', type: 'LOCATION_STATS', title: 'Work Locations', x: 0, y: 1, w: 3, h: 1 },
+  { id: 'w_active', type: 'STATS_ACTIVE_DAYS', title: 'Active Days', x: 3, y: 0, w: 1, h: 1 },
+  { id: 'w_location', type: 'LOCATION_STATS', title: 'Work Locations', x: 0, y: 1, w: 4, h: 1 },
   { id: 'w_session', type: 'SESSION_STATS', title: 'Session Stats', x: 0, y: 2, w: 1, h: 2 },
   { id: 'w_peak', type: 'PEAK_HOURS', title: 'Peak Hours', x: 1, y: 2, w: 1, h: 2 },
-  { id: 'w_weekly', type: 'WEEKLY_RHYTHM', title: 'Weekly Rhythm', x: 2, y: 2, w: 1, h: 2 },
-  { id: 'w_breakdown', type: 'ACTIVITY_BREAKDOWN', title: 'Activity Breakdown', x: 0, y: 4, w: 2, h: 4 },
-  { id: 'w_distribution', type: 'DISTRIBUTION', title: 'Distribution', x: 2, y: 4, w: 1, h: 4 },
-  { id: 'w_recent', type: 'RECENT_LOGS', title: 'Recent Logs', x: 0, y: 8, w: 3, h: 4 },
+  { id: 'w_weekly', type: 'WEEKLY_RHYTHM', title: 'Weekly Rhythm', x: 2, y: 2, w: 2, h: 2 },
+  { id: 'w_breakdown', type: 'ACTIVITY_BREAKDOWN', title: 'Activity Breakdown', x: 0, y: 4, w: 2, h: 3 },
+  { id: 'w_distribution', type: 'DISTRIBUTION', title: 'Distribution', x: 2, y: 4, w: 2, h: 3 },
+  { id: 'w_log_activity', type: 'LOG_ACTIVITY_FORM', title: 'Log Activity', x: 0, y: 7, w: 2, h: 3 },
+  { id: 'w_recent', type: 'RECENT_LOGS', title: 'Recent Logs', x: 2, y: 7, w: 2, h: 3 },
 ];
 
 export const INITIAL_USERS: User[] = [
@@ -36,7 +38,8 @@ export const INITIAL_CATEGORIES: Category[] = [
     subCategories: [
       { id: 'sc_m_1', name: 'Daily Standup', minutes: 30 },
       { id: 'sc_m_2', name: 'Client Call', minutes: 30 },
-    ]
+    ],
+    order: 0
   },
   {
     id: 'c_work',
@@ -46,7 +49,8 @@ export const INITIAL_CATEGORIES: Category[] = [
       { id: 'sc_w_1', name: 'Coding', minutes: 60 },
       { id: 'sc_w_2', name: 'Design', minutes: 60 },
       { id: 'sc_w_3', name: 'Research', minutes: 30 },
-    ]
+    ],
+    order: 1
   },
   {
     id: 'c_admin',
@@ -55,7 +59,8 @@ export const INITIAL_CATEGORIES: Category[] = [
     subCategories: [
       { id: 'sc_a_1', name: 'Emails', minutes: 15 },
       { id: 'sc_a_2', name: 'Planning', minutes: 15 },
-    ]
+    ],
+    order: 2
   }
 ];
 

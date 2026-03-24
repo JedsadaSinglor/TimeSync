@@ -3,17 +3,49 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useToast } from '../contexts/ToastContext';
 import { Category, CategoryCombo } from '../types';
-import { Plus, X, Upload, Download, Layers, Search, Check, Bookmark } from 'lucide-react';
+import { Plus, X, Upload, Download, Layers, Search, Check, Bookmark, GripVertical } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { CategoryCard, PRESET_COLORS } from '../components/admin/CategoryCard';
 import { EmptyState } from '../components/ui/EmptyState';
 import { CategoryExportModal, CategoryImportModal } from '../components/admin/CategoryImportExportModals';
 import { CategoryComboManager } from '../components/admin/CategoryComboManager';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const ITEMS_PER_PAGE = 9;
 
+const SortableCategoryCard = (props: any) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: props.category.id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+    return (
+        <div ref={setNodeRef} style={style} className="relative">
+            <div {...attributes} {...listeners} className="absolute left-2 top-2 cursor-grab z-10 p-1 text-slate-400 hover:text-slate-600">
+                <GripVertical size={16} />
+            </div>
+            <CategoryCard {...props} />
+        </div>
+    );
+};
+
 const CategoryManagement: React.FC = () => {
-  const { categories, addCategory, updateCategory, deleteCategory, categoryCombos, addCategoryCombo, updateCategoryCombo, currentUser } = useApp(); 
+  const { categories, addCategory, updateCategory, deleteCategory, categoryCombos, addCategoryCombo, updateCategoryCombo, currentUser, reorderCategories } = useApp(); 
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,6 +74,41 @@ const CategoryManagement: React.FC = () => {
       return filtered;
   }, [categories, searchTerm]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+        const oldIndex = filteredCategories.findIndex(c => c.id === active.id);
+        const newIndex = filteredCategories.findIndex(c => c.id === over.id);
+        const newCategories = arrayMove(filteredCategories, oldIndex, newIndex);
+        reorderCategories(newCategories.map(c => c.id));
+    }
+  };
+
+  const moveUp = (id: string) => {
+    const index = filteredCategories.findIndex(c => c.id === id);
+    if (index > 0) {
+      const newFiltered = [...filteredCategories];
+      [newFiltered[index], newFiltered[index - 1]] = [newFiltered[index - 1], newFiltered[index]];
+      reorderCategories(newFiltered.map(c => c.id));
+    }
+  };
+
+  const moveDown = (id: string) => {
+    const index = filteredCategories.findIndex(c => c.id === id);
+    if (index < filteredCategories.length - 1) {
+      const newFiltered = [...filteredCategories];
+      [newFiltered[index], newFiltered[index + 1]] = [newFiltered[index + 1], newFiltered[index]];
+      reorderCategories(newFiltered.map(c => c.id));
+    }
+  };
+
   const paginatedCategories = filteredCategories.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const handleCreate = (e: React.FormEvent) => {
@@ -51,7 +118,8 @@ const CategoryManagement: React.FC = () => {
           id: Date.now().toString(),
           name: newName,
           color: newColor,
-          subCategories: []
+          subCategories: [],
+          order: categories.length
       });
       setNewName('');
       setNewColor(PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)]);
@@ -159,7 +227,8 @@ const CategoryManagement: React.FC = () => {
                           id: `imported_cat_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                           name: String(catName).trim(),
                           color: String(colorVal || PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)]),
-                          subCategories: []
+                          subCategories: [],
+                          order: tempCats.length
                       };
                       tempCats.push(cat);
                       newCats++;
@@ -359,31 +428,37 @@ const CategoryManagement: React.FC = () => {
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-          {paginatedCategories.length === 0 ? (
-              <div className="col-span-full">
-                  <EmptyState 
-                      icon={Layers} 
-                      title="No Categories Found" 
-                      description={searchTerm ? `No categories match "${searchTerm}"` : "Create your first category to start organizing your time."}
-                      action={!searchTerm && (
-                          <button onClick={() => setIsCreateOpen(true)} className="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none">
-                              Create Category
-                          </button>
-                      )}
-                  />
-              </div>
-          ) : (
-              paginatedCategories.map(cat => (
-                <CategoryCard 
-                    key={cat.id} 
-                    category={cat} 
-                    updateCategory={updateCategory}
-                    onDelete={() => deleteCategory(cat.id)}
-                />
-              ))
-          )}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={paginatedCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+              {paginatedCategories.length === 0 ? (
+                  <div className="col-span-full">
+                      <EmptyState 
+                          icon={Layers} 
+                          title="No Categories Found" 
+                          description={searchTerm ? `No categories match "${searchTerm}"` : "Create your first category to start organizing your time."}
+                          action={!searchTerm && (
+                              <button onClick={() => setIsCreateOpen(true)} className="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none">
+                                  Create Category
+                              </button>
+                          )}
+                      />
+                  </div>
+              ) : (
+                  paginatedCategories.map(cat => (
+                    <SortableCategoryCard 
+                        key={cat.id} 
+                        category={cat} 
+                        updateCategory={updateCategory}
+                        onDelete={() => deleteCategory(cat.id)}
+                        moveUp={() => moveUp(cat.id)}
+                        moveDown={() => moveDown(cat.id)}
+                    />
+                  ))
+              )}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Modals */}
       {exportSummary && (

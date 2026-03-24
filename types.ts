@@ -36,6 +36,7 @@ export interface Category {
   color: string;
   subCategories: SubCategory[];
   teamId?: string;
+  order: number;
 }
 
 export interface TimeLog {
@@ -86,13 +87,15 @@ export type WidgetType =
   | 'STATS_HOURS' 
   | 'STATS_AVG' 
   | 'STATS_TOP' 
+  | 'STATS_ACTIVE_DAYS'
   | 'LOCATION_STATS' 
   | 'SESSION_STATS' 
   | 'PEAK_HOURS' 
   | 'WEEKLY_RHYTHM' 
   | 'ACTIVITY_BREAKDOWN' 
   | 'DISTRIBUTION' 
-  | 'RECENT_LOGS';
+  | 'RECENT_LOGS'
+  | 'LOG_ACTIVITY_FORM';
 
 export interface DashboardWidget {
   id: string;

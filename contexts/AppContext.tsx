@@ -38,6 +38,7 @@ interface AppContextType {
   addCategoryCombo: (combo: CategoryCombo) => void;
   updateCategoryCombo: (combo: CategoryCombo) => void;
   deleteCategoryCombo: (id: string) => void;
+  reorderCategories: (orderedIds: string[]) => void;
   resetData: () => void;
   resetTimesheet: () => void;
 }
@@ -191,7 +192,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Category Management
   const addCategory = useCallback((category: Category) => {
-    setCategories(prev => [...prev, category]);
+    setCategories(prev => [...prev, { ...category, order: prev.length }]);
   }, []);
 
   const updateCategory = useCallback((updatedCategory: Category) => {
@@ -322,6 +323,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCategoryCombos(prev => prev.filter(c => c.id !== id));
   }, []);
 
+  const reorderCategories = useCallback((orderedIds: string[]) => {
+    setCategories(prev => {
+      const newCategories = [...prev];
+      orderedIds.forEach((id, index) => {
+        const categoryIndex = newCategories.findIndex(c => c.id === id);
+        if (categoryIndex !== -1) {
+          newCategories[categoryIndex] = { ...newCategories[categoryIndex], order: index };
+        }
+      });
+      return newCategories.sort((a, b) => a.order - b.order);
+    });
+  }, []);
+
   // Team Management
   const createTeam = useCallback((name: string) => {
     const newTeam: Team = {
@@ -438,6 +452,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addCategoryCombo,
     updateCategoryCombo,
     deleteCategoryCombo,
+    reorderCategories,
     resetData,
     resetTimesheet
   }), [
@@ -447,6 +462,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addRecurringTask, deleteRecurringTask, applyRecurringTasks,
     createTeam, joinTeam, deleteTeam, updateDayConfig, updateDashboardWidgets,
     addCategoryCombo, updateCategoryCombo, deleteCategoryCombo,
+    reorderCategories,
     resetData, resetTimesheet
   ]);
 

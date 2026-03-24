@@ -54,8 +54,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </header>
         
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
-          <div className="max-w-[1600px] mx-auto p-4 md:p-8 pb-24">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent flex flex-col">
+          <div className="w-full p-4 md:p-8 pb-4 flex-1 flex flex-col min-h-screen">
             {children}
           </div>
         </div>

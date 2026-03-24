@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Trash2, Check, X, Folder, Edit2, Timer 
+  Plus, Trash2, Check, X, Folder, Edit2, Timer, ChevronUp, ChevronDown 
 } from 'lucide-react';
 import { Category, SubCategory } from '../../types';
 
@@ -82,7 +82,9 @@ export const CategoryCard: React.FC<{
   category: Category;
   updateCategory: (c: Category) => void;
   onDelete: () => void;
-}> = ({ category, updateCategory, onDelete }) => {
+  moveUp: () => void;
+  moveDown: () => void;
+}> = ({ category, updateCategory, onDelete, moveUp, moveDown }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingSub, setIsAddingSub] = useState(false);
   const [newSubName, setNewSubName] = useState('');
@@ -177,6 +179,12 @@ export const CategoryCard: React.FC<{
                 </div>
             </div>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={moveUp} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors">
+                    <ChevronUp size={16} />
+                </button>
+                <button onClick={moveDown} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors">
+                    <ChevronDown size={16} />
+                </button>
                 <button onClick={() => setIsEditing(true)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors">
                     <Edit2 size={16} />
                 </button>

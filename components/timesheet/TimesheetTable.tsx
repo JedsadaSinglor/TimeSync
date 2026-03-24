@@ -18,7 +18,7 @@ interface TimesheetTableProps {
   onUpdateLog: (log: TimeLog) => void;
   onAddLog: (log: TimeLog) => void;
   onDeleteLog: (id: string) => void;
-  showToast: (msg: string) => void;
+  onLogClick: (log: TimeLog | null, dateStr: string, category: Category, subCategory: SubCategory) => void;
   onDaySettingsClick: (day: { dateObj: Date; config?: DayConfig }) => void;
 }
 
@@ -28,9 +28,8 @@ interface TimesheetTableProps {
 
 export const TimesheetTable: React.FC<TimesheetTableProps> = ({ 
     categories, logsByDate, days, targetUserId, readOnly, hiddenCategoryIds, hiddenSubCategoryIds, 
-    onUpdateLog, onAddLog, onDeleteLog, showToast, onDaySettingsClick 
+    onUpdateLog, onAddLog, onDeleteLog, onLogClick, onDaySettingsClick 
 }) => {
-  const [activeLogDetails, setActiveLogDetails] = useState<{ log: TimeLog | null, dateStr: string, category: Category, subCategory: SubCategory } | null>(null);
   const [expandedMobileRows, setExpandedMobileRows] = useState<Set<string>>(new Set());
 
   const toggleMobileRow = (key: string) => {
@@ -129,39 +128,15 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
     const subId = subCategory.id === 'general' ? '' : subCategory.id;
     const lookupKey = `${dateStr}_${category.id}_${subId || 'general'}`;
     const existingLog = logsMap.get(lookupKey) || null;
-    setActiveLogDetails({ log: existingLog, dateStr, category, subCategory });
-  }, [logsMap]);
-
-  const handleSaveLogDetails = (updatedLog: Partial<TimeLog>) => {
-    if (!activeLogDetails) return;
-    const { log, dateStr } = activeLogDetails;
-    
-    if (log) {
-        onUpdateLog({ ...log, ...updatedLog } as TimeLog);
-    } else {
-        // Create new log
-        onAddLog({
-            id: Date.now().toString(),
-            userId: targetUserId,
-            date: dateStr,
-            categoryId: updatedLog.categoryId || '',
-            subCategoryId: updatedLog.subCategoryId || '',
-            startTime: updatedLog.startTime || '09:00',
-            endTime: updatedLog.endTime || '10:00',
-            durationMinutes: updatedLog.durationMinutes || 0,
-            count: updatedLog.count,
-            notes: updatedLog.notes || ''
-        });
-    }
-    setActiveLogDetails(null);
-  };
+    onLogClick(existingLog, dateStr, category, subCategory);
+  }, [logsMap, onLogClick]);
 
   const colMinWidth = days.length > 10 ? 'min-w-[70px]' : 'min-w-[100px]';
 
   return (
     <>
     {/* Desktop View */}
-    <div className="hidden md:block overflow-auto border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm bg-white dark:bg-slate-900 relative max-h-[75vh] scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+    <div className="hidden md:block overflow-auto border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm bg-white dark:bg-slate-900 relative flex-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
       <table className="w-full text-left border-collapse min-w-max">
         <thead>
           <tr>
@@ -319,19 +294,6 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
        )}
     </div>
       
-    {activeLogDetails && (
-        <LogDetailsModal 
-            isOpen={!!activeLogDetails}
-            onClose={() => setActiveLogDetails(null)}
-            log={activeLogDetails.log}
-            dateStr={activeLogDetails.dateStr}
-            categories={categories}
-            initialCategory={activeLogDetails.category}
-            initialSubCategory={activeLogDetails.subCategory}
-            onSave={handleSaveLogDetails}
-            onDelete={onDeleteLog}
-        />
-    )}
     </>
   );
 };

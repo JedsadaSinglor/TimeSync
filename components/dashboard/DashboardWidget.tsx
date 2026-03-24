@@ -1,9 +1,12 @@
 
-import React from 'react';
-import { X, GripVertical, Settings2, Clock, Activity, TrendingUp, Building, Home, MapPin, Palmtree, Target, BarChart3, Calendar, PieChart as PieChartIcon, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, GripVertical, Clock, Activity, TrendingUp, Building, Home, MapPin, Palmtree, Target, BarChart3, Calendar, PieChart as PieChartIcon, Zap } from 'lucide-react';
 import { Category, WidgetType, DashboardWidget as WidgetDef } from '../../types';
 import { TrendIndicator, ChartSkeleton } from './DashboardShared';
 import { TrendChart, HourlyChart, WeeklyChart, BreakdownChart, DistributionChart } from './DashboardCharts';
+import { useApp } from '../../contexts/AppContext';
+import { useToast } from '../../contexts/ToastContext';
+import { getLocalDateStr } from '../../utils/storage';
 
 interface DashboardWidgetProps {
   widget: WidgetDef;
@@ -18,6 +21,9 @@ interface DashboardWidgetProps {
 export const DashboardWidget: React.FC<DashboardWidgetProps> = ({ 
   widget, stats, categories, chartsReady, onRemove, isEditing, children 
 }) => {
+  const { currentUser } = useApp();
+  const { showToast } = useToast();
+
   const renderContent = () => {
     switch (widget.type) {
       case 'STATS_HOURS':
@@ -73,22 +79,37 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
             </div>
           </div>
         );
+      case 'STATS_ACTIVE_DAYS':
+        return (
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl shadow-sm"><Calendar size={20} /></div>
+            </div>
+            <div className="mt-auto">
+              <h3 className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Active Days</h3>
+              <div className="flex items-baseline gap-1">
+                <p className="text-5xl font-black text-slate-800 dark:text-white tracking-tighter">{stats.activeDays}</p>
+                <span className="text-xs font-bold text-slate-500">DAYS</span>
+              </div>
+            </div>
+          </div>
+        );
       case 'LOCATION_STATS':
         return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-full">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 h-full">
             {[
               { label: 'Office', val: stats.locationStats.WFO, icon: Building, color: 'blue' },
               { label: 'WFH', val: stats.locationStats.WFH, icon: Home, color: 'purple' },
               { label: 'Site', val: stats.locationStats.SITE, icon: MapPin, color: 'amber' },
               { label: 'Holiday', val: stats.locationStats.HOLIDAY, icon: Palmtree, color: 'rose' }
             ].map((loc) => (
-              <div key={loc.label} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <div className={`p-2 bg-${loc.color}-50 dark:bg-${loc.color}-500/10 text-${loc.color}-600 dark:text-${loc.color}-400 rounded-xl`}>
-                  <loc.icon size={18} />
+              <div key={loc.label} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div className={`p-1.5 md:p-2 bg-${loc.color}-50 dark:bg-${loc.color}-500/10 text-${loc.color}-600 dark:text-${loc.color}-400 rounded-xl`}>
+                  <loc.icon size={16} className="md:w-[18px] md:h-[18px]" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">{loc.label}</p>
-                  <p className="text-xl font-black text-slate-800 dark:text-white leading-none mt-0.5">{loc.val}</p>
+                  <p className="text-[9px] md:text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">{loc.label}</p>
+                  <p className="text-lg md:text-xl font-black text-slate-800 dark:text-white leading-none mt-0.5">{loc.val}</p>
                 </div>
               </div>
             ))}
@@ -152,18 +173,29 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
       case 'DISTRIBUTION':
         return (
           <div className="flex flex-col h-full">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2 mb-4">
-              <div className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400"><PieChartIcon size={14} /></div>
-              Distribution
-            </h3>
-            <div className="flex-1 min-h-0 relative">
-              <DistributionChart data={stats.distributionData} ready={chartsReady} />
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ transform: 'translateY(-10%)' }}>
-                <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter">{stats.totalHours.toFixed(0)}</span>
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Hours</span>
-              </div>
-            </div>
-          </div>
+  <h3 className="flex items-center gap-2 mb-4 text-sm font-bold text-slate-800 dark:text-white">
+    <span 
+      className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+      aria-hidden="true"
+    >
+      <PieChartIcon size={14} />
+    </span>
+    Distribution
+  </h3>
+  
+  <div className="relative flex-1 min-h-0">
+    <DistributionChart data={stats.distributionData} ready={chartsReady} />
+    
+    <div className="absolute left-[30%] top-1/2 -translate-x-1/2 -translate-y-[55%] flex flex-col items-center justify-center pointer-events-none">
+      <span className="text-4xl font-black tracking-tighter text-slate-800 dark:text-white">
+        {Math.round(stats.totalHours)}
+      </span>
+      <span className="text-[10px] font-bold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+        Hours
+      </span>
+    </div>
+  </div>
+</div>
         );
       case 'RECENT_LOGS':
         return (
@@ -173,11 +205,11 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
               Recent Activity
             </h3>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {stats.currentLogs.slice(0, 5).map((log: any) => {
                   const cat = categories.find(c => c.id === log.categoryId);
                   return (
-                    <div key={log.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex justify-between items-center group/item hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm hover:shadow-md">
+                    <div key={log.id} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex justify-between items-center group/item hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm hover:shadow-md">
                       <div className="min-w-0 flex-1 flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: cat?.color || '#cbd5e1' }} />
                         <div className="min-w-0">
@@ -207,19 +239,23 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
   return (
     <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-slate-200/40 dark:hover:shadow-none border border-slate-200 dark:border-slate-800 p-6 h-full relative group transition-all duration-500 hover:-translate-y-1 ${isEditing ? 'ring-2 ring-indigo-500/40' : ''}`}>
       {isEditing && (
-        <div className="absolute top-4 right-4 flex gap-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-grab active:cursor-grabbing rounded-xl hover:text-slate-600 dark:hover:text-slate-200 shadow-sm">
-            <GripVertical size={14} />
+        <>
+          <div className="absolute top-4 left-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity drag-handle">
+            <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-grab active:cursor-grabbing rounded-xl hover:text-slate-600 dark:hover:text-slate-200 shadow-sm">
+              <GripVertical size={14} />
+            </div>
           </div>
-          <button 
-            onClick={() => onRemove?.(widget.id)}
-            className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors shadow-sm"
-          >
-            <X size={14} />
-          </button>
-        </div>
+          <div className="absolute top-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button 
+              onClick={() => onRemove?.(widget.id)}
+              className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors shadow-sm"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </>
       )}
-      <div className="h-full animate-fade-in">
+      <div className={`h-full animate-fade-in ${isEditing ? 'pt-8' : ''}`}>
         {renderContent()}
       </div>
       {children}

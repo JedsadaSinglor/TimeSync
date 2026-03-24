@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
-import { DayConfig, TimeLog, CategoryCombo, Category } from '../types';
+import { DayConfig, TimeLog, CategoryCombo, Category, SubCategory } from '../types';
 import { ChevronLeft, ChevronRight, Calendar, List, Grid3X3, Download, Upload, LayoutGrid, CalendarClock, Eraser, AlertTriangle, Filter, CheckSquare, Square, ChevronDown, ChevronRight as ChevronIcon, Settings, Table, AlignJustify } from 'lucide-react';
 import { getLocalDateStr } from '../utils/storage';
 import { getStartOfWeek, exportTimesheetToExcel, parseTimesheetImport, downloadTemplate } from '../utils/timesheetHelpers';
@@ -13,6 +13,7 @@ import { TimesheetTable } from '../components/timesheet/TimesheetTable';
 import { TimesheetList } from '../components/timesheet/TimesheetList';
 import { ExportConfirmationModal, ImportConfirmationModal } from '../components/timesheet/ImportExportModals';
 import { TimesheetToolbar } from '../components/timesheet/TimesheetToolbar';
+import { LogDetailsModal } from '../components/timesheet/LogDetailsModal';
 
 type ViewMode = 'DAILY' | 'WEEK' | 'MONTH';
 type LayoutMode = 'TABLE' | 'LIST';
@@ -57,6 +58,7 @@ const TimesheetPage: React.FC = () => {
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isResetConfirmationOpen, setIsResetConfirmationOpen] = useState(false);
     const [daySettingsModal, setDaySettingsModal] = useState<{ isOpen: boolean; dateObj: Date; config?: DayConfig }>({ isOpen: false, dateObj: new Date() });
+    const [activeLogDetails, setActiveLogDetails] = useState<{ log: TimeLog | null, dateStr: string, category?: Category, subCategory?: SubCategory } | null>(null);
     
     // Import/Export State
     const [exportSummary, setExportSummary] = useState<{ startDate: string; endDate: string; totalDays: number; totalHours: number; categoryCount: number } | null>(null);
@@ -290,19 +292,52 @@ const TimesheetPage: React.FC = () => {
         showToast(`Applied ${newLogs.length} entries to ${targetDate}`, 'success');
     };
   
+    const handleUpdateDayConfig = (dateObj: Date, newConfig: DayConfig) => {
+        setDaySettingsModal(prev => ({ ...prev, isOpen: false }));
+        updateDayConfig(newConfig);
+        showToast('Day settings updated', 'success');
+    };
+
+    const handleSaveLogDetails = (updatedLog: Partial<TimeLog>) => {
+        if (!activeLogDetails) return;
+        const { log, dateStr } = activeLogDetails;
+        
+        if (log) {
+            updateLog({ ...log, ...updatedLog } as TimeLog);
+        } else {
+            addLog({
+                id: Date.now().toString(),
+                userId: currentUser.id,
+                date: dateStr,
+                categoryId: updatedLog.categoryId || '',
+                subCategoryId: updatedLog.subCategoryId || '',
+                startTime: updatedLog.startTime || '09:00',
+                endTime: updatedLog.endTime || '10:00',
+                durationMinutes: updatedLog.durationMinutes || 0,
+                count: updatedLog.count,
+                notes: updatedLog.notes || ''
+            });
+        }
+        setActiveLogDetails(null);
+    };
+
+    const sortedCategories = useMemo(() => {
+        return [...categories].sort((a, b) => a.order - b.order);
+    }, [categories]);
+
     return (
-      <div className="flex flex-col gap-6 animate-fade-in font-sans pb-20">
+      <div className="flex flex-col gap-6 animate-fade-in font-sans flex-1 min-h-full">
         <DaySettingsModal 
             isOpen={daySettingsModal.isOpen} 
             onClose={() => setDaySettingsModal(prev => ({ ...prev, isOpen: false }))} 
             dateObj={daySettingsModal.dateObj} 
             config={daySettingsModal.config} 
-            onSave={updateDayConfig} 
+            onSave={(config) => handleUpdateDayConfig(daySettingsModal.dateObj, config)} 
         />
         <RecurringTasksModal 
             isOpen={isRecurringModalOpen} 
             onClose={() => setIsRecurringModalOpen(false)} 
-            categories={categories} 
+            categories={sortedCategories} 
         />
         
         {/* Controls Header */}
@@ -316,7 +351,7 @@ const TimesheetPage: React.FC = () => {
             setAnchorDate={setAnchorDate}
             isFilterOpen={isFilterOpen}
             setIsFilterOpen={setIsFilterOpen}
-            categories={categories}
+            categories={sortedCategories}
             hiddenCategoryIds={hiddenCategoryIds}
             hiddenSubCategoryIds={hiddenSubCategoryIds}
             expandedCategories={expandedCategories}
@@ -337,10 +372,10 @@ const TimesheetPage: React.FC = () => {
         />
 
         {/* Main Grid */}
-        <div className="flex-1 animate-fade-in-up">
+        <div className="flex-1 flex flex-col animate-fade-in-up">
           {layoutMode === 'TABLE' ? (
               <TimesheetTable 
-                 categories={categories}
+                 categories={sortedCategories}
                  logsByDate={logsByDate}
                  days={days}
                  targetUserId={currentUser.id}
@@ -350,28 +385,38 @@ const TimesheetPage: React.FC = () => {
                  onUpdateLog={updateLog}
                  onAddLog={addLog}
                  onDeleteLog={deleteLog}
-                 showToast={(msg) => showToast(msg, 'success')}
+                 onLogClick={(log, dateStr, category, subCategory) => setActiveLogDetails({ log, dateStr, category, subCategory })}
                  onDaySettingsClick={(d) => setDaySettingsModal({ isOpen: true, dateObj: d.dateObj, config: d.config })}
                />
           ) : (
               <TimesheetList 
-                 categories={categories}
+                 categories={sortedCategories}
                  logsByDate={logsByDate}
                  days={days}
                  targetUserId={currentUser.id}
                  readOnly={false}
                  hiddenCategoryIds={hiddenCategoryIds}
                  hiddenSubCategoryIds={hiddenSubCategoryIds}
-                 onUpdateLog={updateLog}
-                 onAddLog={addLog}
-                 onDeleteLog={deleteLog}
-                 showToast={(msg) => showToast(msg, 'success')}
+                 onLogClick={(log, dateStr) => setActiveLogDetails({ log, dateStr })}
                  onDaySettingsClick={(d) => setDaySettingsModal({ isOpen: true, dateObj: d.dateObj, config: d.config })}
                />
           )}
         </div>
 
-        {/* Modals */}
+        {activeLogDetails && (
+            <LogDetailsModal 
+                isOpen={!!activeLogDetails}
+                onClose={() => setActiveLogDetails(null)}
+                log={activeLogDetails.log}
+                dateStr={activeLogDetails.dateStr}
+                categories={sortedCategories}
+                initialCategory={activeLogDetails.category}
+                initialSubCategory={activeLogDetails.subCategory}
+                onSave={handleSaveLogDetails}
+                onDelete={(id) => { deleteLog(id); setActiveLogDetails(null); }}
+            />
+        )}
+
         {exportSummary && (
             <ExportConfirmationModal 
                 isOpen={!!exportSummary}

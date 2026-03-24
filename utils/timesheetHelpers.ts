@@ -182,11 +182,12 @@ export const parseTimesheetImport = async (
             if (!category) {
                 category = newCategories.find(c => c.name.toLowerCase() === String(catName).toLowerCase().trim());
                 if (!category) {
-                    category = {
+                        category = {
                         id: `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         name: String(catName).trim(),
                         color: '#CCCCCC', // Default color
-                        subCategories: []
+                        subCategories: [],
+                        order: categories.length + newCategories.length
                     };
                     newCategories.push(category);
                 }

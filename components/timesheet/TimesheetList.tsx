@@ -12,42 +12,14 @@ interface TimesheetListProps {
   readOnly: boolean;
   hiddenCategoryIds: Set<string>;
   hiddenSubCategoryIds: Set<string>;
-  onUpdateLog: (log: TimeLog) => void;
-  onAddLog: (log: TimeLog) => void;
-  onDeleteLog: (id: string) => void;
-  showToast: (msg: string) => void;
+  onLogClick: (log: TimeLog | null, dateStr: string) => void;
   onDaySettingsClick: (day: { dateObj: Date; config?: DayConfig }) => void;
 }
 
 export const TimesheetList: React.FC<TimesheetListProps> = ({
   categories, logsByDate, days, targetUserId, readOnly, hiddenCategoryIds, hiddenSubCategoryIds,
-  onUpdateLog, onAddLog, onDeleteLog, showToast, onDaySettingsClick
+  onLogClick, onDaySettingsClick
 }) => {
-  const [activeLogDetails, setActiveLogDetails] = useState<{ log: TimeLog | null, dateStr: string } | null>(null);
-
-  const handleSaveLogDetails = (updatedLog: Partial<TimeLog>) => {
-    if (!activeLogDetails) return;
-    const { log, dateStr } = activeLogDetails;
-    
-    if (log) {
-        onUpdateLog({ ...log, ...updatedLog } as TimeLog);
-    } else {
-        onAddLog({
-            id: Date.now().toString(),
-            userId: targetUserId,
-            date: dateStr,
-            categoryId: updatedLog.categoryId || '',
-            subCategoryId: updatedLog.subCategoryId || '',
-            startTime: updatedLog.startTime || '09:00',
-            endTime: updatedLog.endTime || '10:00',
-            durationMinutes: updatedLog.durationMinutes || 0,
-            count: updatedLog.count,
-            notes: updatedLog.notes || ''
-        });
-    }
-    setActiveLogDetails(null);
-  };
-
   const getCategory = (id: string) => categories.find(c => c.id === id);
   const getSubCategory = (cat: Category | undefined, id: string) => {
       if (!cat) return null;
@@ -56,7 +28,7 @@ export const TimesheetList: React.FC<TimesheetListProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1">
       {days.map(day => {
         const dayLogs = (logsByDate[day.dateStr] || []).filter(log => {
             if (log.userId !== targetUserId) return false;
@@ -102,7 +74,7 @@ export const TimesheetList: React.FC<TimesheetListProps> = ({
                     </button>
                     {!readOnly && (
                         <button 
-                            onClick={() => setActiveLogDetails({ log: null, dateStr: day.dateStr })}
+                            onClick={() => onLogClick(null, day.dateStr)}
                             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 dark:hover:bg-indigo-700 shadow-lg transition-all active:scale-95"
                         >
                             <Plus size={16} strokeWidth={3} /> Add
@@ -120,7 +92,7 @@ export const TimesheetList: React.FC<TimesheetListProps> = ({
                         <p className="text-sm font-bold text-slate-400 dark:text-slate-500">Nothing scheduled for today</p>
                         {!readOnly && (
                             <button 
-                                onClick={() => setActiveLogDetails({ log: null, dateStr: day.dateStr })}
+                                onClick={() => onLogClick(null, day.dateStr)}
                                 className="mt-4 text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest hover:underline"
                             >
                                 Quick Add Entry
@@ -137,7 +109,7 @@ export const TimesheetList: React.FC<TimesheetListProps> = ({
                             return (
                                 <div 
                                     key={log.id} 
-                                    onClick={() => !readOnly && setActiveLogDetails({ log, dateStr: day.dateStr })}
+                                    onClick={() => !readOnly && onLogClick(log, day.dateStr)}
                                     className={`group relative p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${!readOnly ? 'cursor-pointer' : ''}`}
                                 >
                                     {/* Category Color Strip */}
@@ -192,18 +164,6 @@ export const TimesheetList: React.FC<TimesheetListProps> = ({
           </div>
         );
       })}
-
-      {activeLogDetails && (
-        <LogDetailsModal 
-            isOpen={!!activeLogDetails}
-            onClose={() => setActiveLogDetails(null)}
-            log={activeLogDetails.log}
-            dateStr={activeLogDetails.dateStr}
-            categories={categories}
-            onSave={handleSaveLogDetails}
-            onDelete={onDeleteLog}
-        />
-      )}
     </div>
   );
 };
