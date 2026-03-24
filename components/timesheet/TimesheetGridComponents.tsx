@@ -153,12 +153,14 @@ export interface TimesheetRowProps {
   onCellChange: (dateStr: string, category: Category, subCategory: SubCategory, val: string) => void;
   openNoteModal: (dateStr: string, category: Category, subCategory: SubCategory) => void;
   onDoubleClick: (dateStr: string, category: Category, subCategory: SubCategory) => void;
+  isCategoryColVisible: boolean; // <-- เพิ่ม Prop นี้
 }
 
 const areTimesheetRowPropsEqual = (prev: TimesheetRowProps, next: TimesheetRowProps) => {
     if (prev.row.key !== next.row.key) return false;
     if (prev.rowTotal !== next.rowTotal) return false;
     if (prev.readOnly !== next.readOnly) return false;
+    if (prev.isCategoryColVisible !== next.isCategoryColVisible) return false; // <-- เช็คการเปลี่ยนแปลงของ Prop
     if (prev.days !== next.days) return false;
     
     for (const d of prev.days) {
@@ -171,19 +173,33 @@ const areTimesheetRowPropsEqual = (prev: TimesheetRowProps, next: TimesheetRowPr
     return true;
 };
 
-export const TimesheetRow = React.memo(({ row, days, logsMap, rowTotal, readOnly, onCellChange, openNoteModal, onDoubleClick }: TimesheetRowProps) => {
+export const TimesheetRow = React.memo(({ row, days, logsMap, rowTotal, readOnly, onCellChange, openNoteModal, onDoubleClick, isCategoryColVisible }: TimesheetRowProps) => {
     return (
         <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group even:bg-slate-50/30 dark:even:bg-slate-800/20">
-            <td className="border-r border-b border-slate-200/60 dark:border-slate-700/60 text-center text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 sticky left-0 z-10 p-0 transition-colors"></td>
-            <td className="border-r border-b border-slate-200/60 dark:border-slate-700/60 px-4 py-3 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 sticky left-10 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.02)] transition-colors" style={{ borderLeft: `4px solid ${row.category.color}` }}>
-                <div className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate" title={row.category.name}>{row.category.name}</div>
+            
+            {/* คอลัมน์แถบสีซ้ายสุด */}
+            <td className="bg-white dark:bg-slate-900 border-r border-b border-slate-200/60 dark:border-slate-700/60 p-0 sticky left-0 z-10 min-w-[40px] max-w-[40px] transition-colors">
+                 <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ backgroundColor: row.category.color }}></div>
             </td>
-            <td className="border-r border-b border-slate-200/60 dark:border-slate-700/60 px-4 py-3 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 sticky left-[210px] z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.02)] transition-colors">
+
+            {/* คอลัมน์ Category (แสดง/ซ่อน ตาม isCategoryColVisible) */}
+            {isCategoryColVisible && (
+                <td className="border-r border-b border-slate-200/60 dark:border-slate-700/60 px-4 py-3 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 sticky left-[40px] z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.02)] transition-colors w-[200px] min-w-[200px] max-w-[200px]">
+                    <div className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate" title={row.category.name}>{row.category.name}</div>
+                </td>
+            )}
+
+            {/* คอลัมน์ Subcategory (ปรับ left position ตาม isCategoryColVisible) */}
+            <td className={`border-r border-b border-slate-200/60 dark:border-slate-700/60 px-4 py-3 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 sticky z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.02)] transition-all w-[200px] min-w-[200px] max-w-[200px] ${isCategoryColVisible ? 'left-[240px]' : 'left-[40px]'}`}>
                 <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate" title={row.subCategory.name}>{row.subCategory.name}</div>
             </td>
+
+            {/* คอลัมน์ Default */}
             <td className="border-r border-b border-slate-200/60 dark:border-slate-700/60 px-3 py-3 text-center text-xs text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 font-mono">
                 {row.subCategory.minutes ? `${row.subCategory.minutes}m` : '-'}
             </td>
+
+            {/* คอลัมน์วันที่ (TimesheetCell) */}
             {days.map((d) => {
                 const subId = row.subCategory.id === 'general' ? '' : row.subCategory.id;
                 const key = `${d.dateStr}_${row.category.id}_${subId || 'general'}`;
@@ -202,6 +218,8 @@ export const TimesheetRow = React.memo(({ row, days, logsMap, rowTotal, readOnly
                     />
                 );
             })}
+
+            {/* คอลัมน์ Total */}
             <td className="border-l border-b border-slate-200/60 dark:border-slate-700/60 px-3 text-center text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 sticky right-0 z-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                 {rowTotal > 0 ? (rowTotal/60).toFixed(1) : '-'}
             </td>
