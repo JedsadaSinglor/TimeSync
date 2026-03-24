@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { ResponsiveGridLayout, useContainerWidth, Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { Category, DashboardWidget as WidgetDef } from '../../types';
 import { DashboardWidget } from './DashboardWidget';
-import { Settings2, Check } from 'lucide-react';
+import { Settings2, Check, RotateCcw, LayoutDashboard, Info } from 'lucide-react';
 
 interface DashboardGridProps {
   widgets: WidgetDef[];
@@ -25,6 +24,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     lg: widgets.map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h }))
   });
 
+  // Sync external widget changes to internal layout state
   useEffect(() => {
     setCurrentLayouts({
       lg: widgets.map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h }))
@@ -46,40 +46,73 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
   };
 
   return (
-    <div className="w-full space-y-4" ref={containerRef as any}>
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Dashboard Overview</h2>
-        <div className="flex gap-2">
+    <div className="w-full flex flex-col gap-4">
+      
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl">
+            <LayoutDashboard size={20} />
+          </div>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+            Dashboard Overview
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           {isEditing && onReset && (
             <button 
               onClick={onReset}
-              className="px-4 py-2 text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-slate-400 outline-none"
+              title="Revert to default layout"
             >
-              Reset Layout
+              <RotateCcw size={16} />
+              <span className="hidden sm:inline">Reset Layout</span>
             </button>
           )}
+          
           <button 
             onClick={() => setIsEditing(!isEditing)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all outline-none ${
               isEditing 
-                ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700' 
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 ring-4 ring-indigo-500/30 hover:bg-indigo-700' 
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-[#f8f9fa] dark:hover:bg-slate-700 focus-visible:ring-4 focus-visible:ring-slate-200 dark:focus-visible:ring-slate-700'
             }`}
           >
             {isEditing ? (
-              <><Check size={16} /> Done Editing</>
+              <><Check size={18} /> Done Editing</>
             ) : (
-              <><Settings2 size={16} /> Customize Layout</>
+              <><Settings2 size={18} /> Customize</>
             )}
           </button>
         </div>
       </div>
 
-      <div className="w-full">
+      {/* Editing Mode Helper Banner */}
+      <div 
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${isEditing ? 'max-h-20 opacity-100 mb-2' : 'max-h-0 opacity-0 m-0'}`}
+      >
+        <div className="flex items-center gap-3 p-3 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl">
+          <Info size={18} className="text-indigo-500 shrink-0" />
+          <p className="text-sm font-medium text-indigo-800 dark:text-indigo-300">
+            <strong>Edit Mode Active:</strong> Drag widgets by their headers to reorganize. Pull the bottom-right corners to resize them.
+          </p>
+        </div>
+      </div>
+
+      {/* Grid Canvas Wrapper */}
+      <div 
+        ref={containerRef as any}
+        className={`w-full min-h-[400px] rounded-[2.5rem] transition-all duration-500 ${
+          isEditing 
+            ? 'bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] border-2 border-indigo-200 dark:border-indigo-500/30 p-2 -mx-2' 
+            : 'bg-transparent border-2 border-transparent p-0 mx-0'
+        }`}
+      >
         {mounted && (
           <ResponsiveGridLayout
             width={width}
-            className="layout"
+            className={`layout ${isEditing ? 'is-editing' : ''}`}
             layouts={currentLayouts}
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
@@ -89,10 +122,19 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             resizeConfig={{ enabled: isEditing }}
             margin={[16, 16]}
             containerPadding={[0, 0]}
-            positionStrategy={{ type: 'transform', scale: 1, calcStyle: (pos) => ({ transform: `translate(${pos.left}px, ${pos.top}px)`, width: `${pos.width}px`, height: `${pos.height}px`, position: 'absolute' }) }}
+            positionStrategy={{ 
+              type: 'transform', 
+              scale: 1, 
+              calcStyle: (pos) => ({ 
+                transform: `translate(${pos.left}px, ${pos.top}px)`, 
+                width: `${pos.width}px`, 
+                height: `${pos.height}px`, 
+                position: 'absolute' 
+              }) 
+            }}
           >
             {widgets.map(w => (
-              <div key={w.id}>
+              <div key={w.id} className="group/widget">
                 <DashboardWidget 
                   widget={w} 
                   stats={stats} 
@@ -100,6 +142,11 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   chartsReady={chartsReady} 
                   isEditing={isEditing}
                 />
+                
+                {/* Edit Mode Overlay (Optional reinforcement) */}
+                {isEditing && (
+                  <div className="absolute inset-0 border-2 border-indigo-400/0 group-hover/widget:border-indigo-400/50 rounded-[2rem] pointer-events-none transition-colors z-20" />
+                )}
               </div>
             ))}
           </ResponsiveGridLayout>
