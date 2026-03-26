@@ -177,9 +177,20 @@ export const useDashboardStats = (
         if (!chartsReady) return [];
         const hours = Array(24).fill(0).map((_, i) => ({ hour: i, minutes: 0, label: `${i}:00` }));
         currentLogs.forEach(l => {
-            const startHour = parseInt(l.startTime.split(':')[0], 10);
-            if (!isNaN(startHour)) {
-                hours[startHour].minutes += l.durationMinutes;
+            if (!l.startTime) return;
+            const [startH, startM] = l.startTime.split(':').map(Number);
+            if (isNaN(startH) || isNaN(startM)) return;
+            
+            let remainingMinutes = l.durationMinutes;
+            let currentHour = startH;
+            let currentMinute = startM;
+
+            while (remainingMinutes > 0 && currentHour < 24) {
+                const minutesInThisHour = Math.min(60 - currentMinute, remainingMinutes);
+                hours[currentHour].minutes += minutesInThisHour;
+                remainingMinutes -= minutesInThisHour;
+                currentHour++;
+                currentMinute = 0;
             }
         });
         return hours;
@@ -190,7 +201,8 @@ export const useDashboardStats = (
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const dayStats = days.map(d => ({ day: d, minutes: 0 }));
         currentLogs.forEach(l => {
-            const dayIndex = new Date(l.date + 'T12:00:00').getDay();
+            const [year, month, day] = l.date.split('-').map(Number);
+            const dayIndex = new Date(year, month - 1, day).getDay();
             dayStats[dayIndex].minutes += l.durationMinutes;
         });
         return dayStats;

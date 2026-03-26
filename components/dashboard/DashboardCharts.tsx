@@ -69,6 +69,7 @@ export const HourlyChart = ({ data, ready }: { data: any[], ready: boolean }) =>
           tickLine={false} 
           tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
           tickFormatter={(val) => `${(val/60).toFixed(1)}h`}
+          allowDecimals={false}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
         <Bar dataKey="minutes" name="Total Time" fill="#8b5cf6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
@@ -95,6 +96,7 @@ export const WeeklyChart = ({ data, ready }: { data: any[], ready: boolean }) =>
           tickLine={false} 
           tick={{ fontSize: 12, fill: '#475569', fontWeight: 500 }} 
           tickFormatter={(val) => `${(val/60).toFixed(1)}h`}
+          allowDecimals={false}
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
         <Bar dataKey="minutes" name="Total Time" fill="#10b981" radius={[6, 6, 0, 0]} isAnimationActive={false} />
@@ -125,7 +127,19 @@ export const BreakdownChart = ({ data, stacks, ready }: { data: any[], stacks: s
           tickFormatter={(val) => `${(val/60).toFixed(1)}h`} 
           allowDecimals={false}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} />
+        <Tooltip 
+          content={<CustomTooltip />} 
+          cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/50' }} 
+          allowEscapeViewBox={{ x: true, y: true }}
+          offset={20}
+        />
+        <Legend 
+          verticalAlign="top" 
+          align="right" 
+          iconType="circle" 
+          iconSize={10} 
+          wrapperStyle={{ fontSize: '12px', fontWeight: 600, paddingBottom: '10px' }} 
+        />
         {stacks.map((stack, index) => (
           <Bar 
             key={stack} 

@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { X, GripVertical, Clock, Activity, TrendingUp, Building, Home, MapPin, Palmtree, Target, BarChart3, Calendar, PieChart as PieChartIcon, Zap } from 'lucide-react';
 import { Category, WidgetType, DashboardWidget as WidgetDef } from '../../types';
-import { TrendIndicator, ChartSkeleton } from './DashboardShared';
+import { TrendIndicator, ChartSkeleton, CustomTooltip } from './DashboardShared';
 import { TrendChart, HourlyChart, WeeklyChart, BreakdownChart, DistributionChart } from './DashboardCharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useApp } from '../../contexts/AppContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getLocalDateStr } from '../../utils/storage';
@@ -70,10 +71,16 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
             </div>
             <div className="mt-auto">
               <h3 className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Top Focus</h3>
-              <p className="text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate mb-2" title={stats.topCat.name}>{stats.topCat.name}</p>
+              <p className="text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate mb-1" title={stats.topCat.name}>{stats.topCat.name}</p>
               {stats.totalHours > 0 && (
-                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
-                  <div className="bg-orange-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(249,115,22,0.4)]" style={{ width: `${(stats.topCat.minutes / (stats.totalHours * 60)) * 100}%`}}></div>
+                <div className="mt-1">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{(stats.topCat.minutes / 60).toFixed(1)}h logged</span>
+                    <span className="text-[10px] font-black text-orange-500 dark:text-orange-400">{((stats.topCat.minutes / (stats.totalHours * 60)) * 100).toFixed(0)}% of total</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
+                    <div className="bg-orange-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(249,115,22,0.4)]" style={{ width: `${(stats.topCat.minutes / (stats.totalHours * 60)) * 100}%`}}></div>
+                  </div>
                 </div>
               )}
             </div>
@@ -95,40 +102,62 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
           </div>
         );
       case 'LOCATION_STATS':
+        const locData = [
+          { name: 'Office', value: stats.locationStats.WFO, color: '#3b82f6' },
+          { name: 'WFH', value: stats.locationStats.WFH, color: '#a855f7' },
+          { name: 'Site', value: stats.locationStats.SITE, color: '#f59e0b' },
+          { name: 'Holiday', value: stats.locationStats.HOLIDAY, color: '#f43f5e' }
+        ].filter(d => d.value > 0);
+        
         return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 h-full">
-            {[
-              { label: 'Office', val: stats.locationStats.WFO, icon: Building, color: 'blue' },
-              { label: 'WFH', val: stats.locationStats.WFH, icon: Home, color: 'purple' },
-              { label: 'Site', val: stats.locationStats.SITE, icon: MapPin, color: 'amber' },
-              { label: 'Holiday', val: stats.locationStats.HOLIDAY, icon: Palmtree, color: 'rose' }
-            ].map((loc) => (
-              <div key={loc.label} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <div className={`p-1.5 md:p-2 bg-${loc.color}-50 dark:bg-${loc.color}-500/10 text-${loc.color}-600 dark:text-${loc.color}-400 rounded-xl`}>
-                  <loc.icon size={16} className="md:w-[18px] md:h-[18px]" />
+          <div className="flex items-center justify-between h-full gap-4">
+            <div className="flex-1">
+              <h3 className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Work Locations</h3>
+              {locData.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {locData.map((loc) => (
+                    <div key={loc.name} className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: loc.color }} />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{loc.name}</span>
+                      <span className="text-xs font-black text-slate-900 dark:text-white ml-auto">{loc.value}</span>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-[9px] md:text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-tight">{loc.label}</p>
-                  <p className="text-lg md:text-xl font-black text-slate-800 dark:text-white leading-none mt-0.5">{loc.val}</p>
-                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">No location data</p>
+              )}
+            </div>
+            {locData.length > 0 && (
+              <div className="w-20 h-20 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={locData} cx="50%" cy="50%" innerRadius={25} outerRadius={40} paddingAngle={2} dataKey="value" isAnimationActive={false}>
+                      {locData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />)}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
+            )}
           </div>
         );
       case 'SESSION_STATS':
         return (
           <div className="flex flex-col h-full">
-            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2 mb-4">
+            <h3 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2 mb-3">
               <div className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400"><Target size={14} /></div>
               Session Stats
             </h3>
-            <div className="grid grid-cols-1 gap-3 mt-auto">
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl flex justify-between items-center">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Session</span>
+            <div className="grid grid-cols-2 gap-2 mt-auto">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl flex flex-col justify-center items-center text-center">
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Avg</span>
                 <span className="text-xl font-black text-slate-800 dark:text-white">{(stats.sessionStats.avg / 60).toFixed(1)}h</span>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl flex justify-between items-center">
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Longest</span>
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl flex flex-col justify-center items-center text-center">
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Longest</span>
                 <span className="text-xl font-black text-slate-800 dark:text-white">{(stats.sessionStats.longest / 60).toFixed(1)}h</span>
               </div>
             </div>

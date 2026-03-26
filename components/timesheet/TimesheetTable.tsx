@@ -15,7 +15,7 @@ interface TimesheetTableProps {
   onUpdateLog: (log: TimeLog) => void;
   onAddLog: (log: TimeLog) => void;
   onDeleteLog: (id: string) => void;
-  onLogClick: (log: TimeLog | null, dateStr: string, category: Category, subCategory: SubCategory) => void;
+  onLogClick: (dateStr: string, category: Category, subCategory: SubCategory) => void;
   onDaySettingsClick: (day: { dateObj: Date; config?: DayConfig }) => void;
 }
 
@@ -127,11 +127,8 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
   }, [readOnly, onDeleteLog, onUpdateLog, onAddLog, targetUserId]);
 
   const openLogDetails = useCallback((dateStr: string, category: Category, subCategory: SubCategory) => {
-    const subId = subCategory.id === 'general' ? '' : subCategory.id;
-    const lookupKey = `${dateStr}_${category.id}_${subId || 'general'}`;
-    const existingLog = logsMap.get(lookupKey) || null;
-    onLogClick(existingLog, dateStr, category, subCategory);
-  }, [logsMap, onLogClick]);
+    onLogClick(dateStr, category, subCategory);
+  }, [onLogClick]);
 
   const colMinWidth = days.length > 10 ? 'min-w-[70px]' : 'min-w-[100px]';
 
@@ -255,6 +252,7 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
                             logsMap={logsMap} 
                             rowTotal={rowTotalsMap.get(row.key) || 0}
                             readOnly={readOnly}
+                            isCategoryColVisible={true}
                             // Pass existing log so onChange doesn't recreate on every keystroke
                             onCellChange={(dateStr, cat, subCat, valStr) => {
                                const subId = subCat.id === 'general' ? '' : subCat.id;
