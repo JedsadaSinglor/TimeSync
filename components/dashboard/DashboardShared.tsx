@@ -21,34 +21,47 @@ export const TrendIndicator = ({ current, previous, inverse = false }: { current
 
 export interface CustomTooltipProps {
   active?: boolean;
-  payload?: { value: number; color: string; name: string }[];
+  payload?: any[];
   label?: string;
+  totalValue?: number; // Optional total for percentage calculation
 }
 
-export const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+export const CustomTooltip = ({ active, payload, label, totalValue }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    const total = payload.reduce((sum: number, entry) => sum + (entry.value || 0), 0);
+    const stackTotal = payload.reduce((sum: number, entry: any) => sum + (entry.value || 0), 0);
+    const chartTotal = totalValue || stackTotal;
+    
     return (
-      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-slate-100 dark:border-slate-700 p-4 rounded-xl shadow-xl animate-fade-in z-50 ring-1 ring-black/5">
-        <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-3 pb-2 border-b border-slate-100 dark:border-slate-700">{label}</p>
-        <div className="space-y-2">
-          {payload.map((entry, index: number) => (
-             entry.value && entry.value > 0 ? (
-              <div key={index} className="flex items-center justify-between gap-8 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">{entry.name}</span>
+      <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-800 p-4 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-50 ring-1 ring-white/10 min-w-[200px]">
+        {label && (
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.15em]">{label}</p>
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+          </div>
+        )}
+        <div className="space-y-2.5">
+          {payload.map((entry: any, index: number) => {
+             if (entry.value === undefined || entry.value === null) return null;
+             const percent = chartTotal > 0 ? ((entry.value / chartTotal) * 100).toFixed(1) : '0.0';
+             return (
+              <div key={index} className="flex items-center justify-between gap-6">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-3 rounded-full shadow-sm" style={{ backgroundColor: entry.color || entry.fill }} />
+                  <span className="text-xs font-bold text-slate-300 tracking-tight">{entry.name}</span>
                 </div>
-                <span className="font-bold text-slate-900 dark:text-white font-mono">
-                  {(entry.value / 60).toFixed(1)} h
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-black text-white font-mono tracking-tighter">
+                    {(entry.value / 60).toFixed(1)}h
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold w-10 text-right tabular-nums">[{percent}%]</span>
+                </div>
               </div>
-             ) : null
-          ))}
+             );
+          })}
           {payload.length > 1 && (
-            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Total</span>
-              <span className="text-sm font-black text-slate-800 dark:text-white font-mono">{(total / 60).toFixed(1)} h</span>
+            <div className="pt-2.5 mt-2.5 border-t border-slate-800 flex justify-between items-center">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+              <span className="text-xs font-black text-indigo-400 font-mono tracking-tighter">{(stackTotal / 60).toFixed(1)}h</span>
             </div>
           )}
         </div>

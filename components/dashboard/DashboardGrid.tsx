@@ -13,13 +13,15 @@ interface DashboardGridProps {
   chartsReady: boolean;
   onLayoutChange?: (widgets: WidgetDef[]) => void;
   onReset?: () => void;
+  isEditing: boolean;
+  setIsEditing: (val: boolean) => void;
+  onCategoryClick?: (categoryName: string) => void;
 }
 
 export const DashboardGrid: React.FC<DashboardGridProps> = ({ 
-  widgets, stats, categories, chartsReady, onLayoutChange, onReset
+  widgets, stats, categories, chartsReady, onLayoutChange, onReset, isEditing, setIsEditing, onCategoryClick
 }) => {
   const { width, containerRef, mounted } = useContainerWidth();
-  const [isEditing, setIsEditing] = useState(false);
   const [currentLayouts, setCurrentLayouts] = useState<{ [key: string]: Layout }>({
     lg: widgets.map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h }))
   });
@@ -70,21 +72,6 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
               <span className="hidden sm:inline">Reset Layout</span>
             </button>
           )}
-          
-          <button 
-            onClick={() => setIsEditing(!isEditing)}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all outline-none ${
-              isEditing 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 ring-4 ring-indigo-500/30 hover:bg-indigo-700' 
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-[#f8f9fa] dark:hover:bg-slate-700 focus-visible:ring-4 focus-visible:ring-slate-200 dark:focus-visible:ring-slate-700'
-            }`}
-          >
-            {isEditing ? (
-              <><Check size={18} /> Done Editing</>
-            ) : (
-              <><Settings2 size={18} /> Customize</>
-            )}
-          </button>
         </div>
       </div>
 
@@ -141,6 +128,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
                   categories={categories}
                   chartsReady={chartsReady} 
                   isEditing={isEditing}
+                  onCategoryClick={onCategoryClick}
                 />
                 
                 {/* Edit Mode Overlay (Optional reinforcement) */}

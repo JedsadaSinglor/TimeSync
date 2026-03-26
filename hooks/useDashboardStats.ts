@@ -1,14 +1,27 @@
 import { useMemo } from 'react';
 import { TimeLog, Category, DayConfig, User } from '../types';
 
-export type TimeRange = 'WEEK' | 'MONTH' | 'YEAR' | 'ALL';
+export type TimeRange = 'WEEK' | 'MONTH' | 'YEAR' | 'ALL' | 'CUSTOM';
 
 export const toLocalISOString = (date: Date) => {
   const offset = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offset).toISOString().split('T')[0];
 };
 
-export const getDateRange = (range: TimeRange, offset: number = 0) => {
+export const getDateRange = (range: TimeRange, offset: number = 0, customRange?: { start: Date, end: Date }) => {
+    if (range === 'CUSTOM' && customRange) {
+        if (offset > 0) {
+            const diff = customRange.end.getTime() - customRange.start.getTime();
+            const start = new Date(customRange.start.getTime() - diff);
+            const end = new Date(customRange.end.getTime() - diff);
+            start.setHours(0,0,0,0); end.setHours(23,59,59,999);
+            return { start, end };
+        }
+        const start = new Date(customRange.start);
+        const end = new Date(customRange.end);
+        start.setHours(0,0,0,0); end.setHours(23,59,59,999);
+        return { start, end };
+    }
     const now = new Date();
     if (offset > 0) {
         if (range === 'WEEK') now.setDate(now.getDate() - (7 * offset));
@@ -40,7 +53,8 @@ export const useDashboardStats = (
     timeRange: TimeRange,
     selectedCategoryId: string,
     selectedSubCategoryId: string,
-    chartsReady: boolean
+    chartsReady: boolean,
+    customDateRange?: { start: Date, end: Date }
 ) => {
     const getFilteredLogs = (startDate: Date, endDate: Date) => {
         if (!currentUser) return [];
@@ -59,10 +73,10 @@ export const useDashboardStats = (
         return filtered;
     };
 
-    const { start: currStart, end: currEnd } = useMemo(() => getDateRange(timeRange, 0), [timeRange]);
+    const { start: currStart, end: currEnd } = useMemo(() => getDateRange(timeRange, 0, customDateRange), [timeRange, customDateRange]);
     const currentLogs = useMemo(() => getFilteredLogs(currStart, currEnd), [logs, selectedCategoryId, selectedSubCategoryId, currStart, currEnd, currentUser]);
 
-    const { start: prevStart, end: prevEnd } = useMemo(() => getDateRange(timeRange, 1), [timeRange]);
+    const { start: prevStart, end: prevEnd } = useMemo(() => getDateRange(timeRange, 1, customDateRange), [timeRange, customDateRange]);
     const previousLogs = useMemo(() => getFilteredLogs(prevStart, prevEnd), [logs, selectedCategoryId, selectedSubCategoryId, prevStart, prevEnd, currentUser]);
 
     const totalMinutes = currentLogs.reduce((acc, log) => acc + log.durationMinutes, 0);
