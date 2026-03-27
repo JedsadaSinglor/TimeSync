@@ -103,11 +103,11 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             layouts={currentLayouts}
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
-            rowHeight={180}
+            rowHeight={200}
             onLayoutChange={handleLayoutChange}
             dragConfig={{ enabled: isEditing, handle: '.drag-handle' }}
             resizeConfig={{ enabled: isEditing }}
-            margin={[16, 16]}
+            margin={[24, 24]}
             containerPadding={[0, 0]}
             positionStrategy={{ 
               type: 'transform', 
@@ -121,7 +121,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
             }}
           >
             {widgets.map(w => (
-              <div key={w.id} className="group/widget">
+              <div key={w.id} className="group/widget overflow-visible">
                 <DashboardWidget 
                   widget={w} 
                   stats={stats} 

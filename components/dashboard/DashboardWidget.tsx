@@ -224,7 +224,7 @@ export const DashboardWidget: React.FC<DashboardWidgetProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-      className={`bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-indigo-500/10 dark:hover:shadow-none border border-slate-200 dark:border-slate-800 p-6 h-full relative group transition-all duration-500 ${isEditing ? 'ring-2 ring-indigo-500/40' : ''}`}
+      className={`bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-indigo-500/10 dark:hover:shadow-none border border-slate-200 dark:border-slate-800 p-6 h-full relative group transition-all duration-500 hover:z-50 overflow-visible ${isEditing ? 'ring-2 ring-indigo-500/40' : ''}`}
     >
       {isEditing && (
         <>

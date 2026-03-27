@@ -36,7 +36,7 @@ export const TrendChart = ({ data, ready }: { data: any[], ready: boolean }) => 
           dx={-10} 
           tickFormatter={(val) => `${(val/60).toFixed(0)}h`} 
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '4 4' }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '4 4' }} wrapperStyle={{ zIndex: 1000 }} allowEscapeViewBox={{ x: true, y: true }} />
         <Area 
           type="monotone" 
           dataKey="minutes" 
@@ -78,7 +78,7 @@ export const WeeklyChart = ({ data, ready }: { data: any[], ready: boolean }) =>
           tickFormatter={(val) => `${(val/60).toFixed(0)}h`}
           allowDecimals={false}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/20' }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/20' }} wrapperStyle={{ zIndex: 1000 }} allowEscapeViewBox={{ x: true, y: true }} />
         <Bar dataKey="minutes" name="Total Time" fill="url(#barGradient)" radius={[4, 4, 0, 0]} isAnimationActive={false} barSize={32} />
       </BarChart>
     </ResponsiveContainer>
@@ -120,6 +120,7 @@ export const BreakdownChart = ({ data, stacks, categories, ready, onCategoryClic
           cursor={{ fill: '#f1f5f9', className: 'dark:fill-slate-800/20' }} 
           allowEscapeViewBox={{ x: true, y: true }}
           offset={20}
+          wrapperStyle={{ zIndex: 1000 }}
         />
         <Legend 
           verticalAlign="top" 
@@ -170,7 +171,7 @@ export const DistributionChart = ({ data, ready, onCategoryClick }: { data: any[
             <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" className="hover:opacity-80 transition-opacity" />
           ))}
         </Pie>
-        <Tooltip content={<CustomTooltip totalValue={totalValue} />} />
+        <Tooltip content={<CustomTooltip totalValue={totalValue} />} wrapperStyle={{ zIndex: 1000 }} allowEscapeViewBox={{ x: true, y: true }} />
         <Legend 
           layout="vertical" 
           verticalAlign="middle" 

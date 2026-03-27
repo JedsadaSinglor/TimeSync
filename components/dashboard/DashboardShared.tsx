@@ -32,7 +32,7 @@ export const CustomTooltip = ({ active, payload, label, totalValue }: CustomTool
     const chartTotal = totalValue || stackTotal;
     
     return (
-      <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-800 p-4 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-50 ring-1 ring-white/10 min-w-[200px]">
+      <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-800 p-4 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-[100] ring-1 ring-white/10 min-w-[200px]">
         {label && (
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.15em]">{label}</p>
