@@ -43,8 +43,8 @@ export interface TimeLog {
   id: string;
   userId: string;
   date: string; 
-  startTime: string; 
-  endTime: string; 
+  startTime?: string; 
+  endTime?: string; 
   categoryId: string;
   subCategoryId: string;
   durationMinutes: number;

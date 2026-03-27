@@ -118,7 +118,6 @@ export const TimesheetTable: React.FC<TimesheetTableProps> = ({
         date: dateStr,
         categoryId: category.id,
         subCategoryId: subId,
-        startTime: '09:00', endTime: '10:00',
         durationMinutes: newDuration,
         count: newCount,
         notes: ''

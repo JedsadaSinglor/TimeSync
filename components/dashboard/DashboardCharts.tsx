@@ -24,7 +24,8 @@ export const TrendChart = ({ data, ready }: { data: any[], ready: boolean }) => 
           tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} 
           dy={10} 
           tickFormatter={(val) => {
-            const d = new Date(val);
+            // Append T00:00:00 to ensure ISO date strings are parsed as local time
+            const d = new Date(val.includes('T') ? val : `${val}T00:00:00`);
             return isNaN(d.getTime()) ? val : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           }} 
         />

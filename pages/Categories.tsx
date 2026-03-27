@@ -26,8 +26,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const ITEMS_PER_PAGE = 9;
-
 const SortableCategoryCard = (props: any) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: props.category.id });
     const style = {
@@ -35,7 +33,7 @@ const SortableCategoryCard = (props: any) => {
         transition,
     };
     return (
-        <div ref={setNodeRef} style={style} className="relative">
+        <div ref={setNodeRef} style={style} className="relative h-full">
             <div {...attributes} {...listeners} className="absolute left-2 top-2 cursor-grab z-10 p-1 text-slate-400 hover:text-slate-600">
                 <GripVertical size={16} />
             </div>
@@ -48,7 +46,6 @@ const CategoryManagement: React.FC = () => {
   const { categories, addCategory, updateCategory, deleteCategory, categoryCombos, addCategoryCombo, updateCategoryCombo, currentUser, reorderCategories } = useApp(); 
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
@@ -59,8 +56,6 @@ const CategoryManagement: React.FC = () => {
   const [importSummary, setImportSummary] = useState<{ newCategories: number, newSubCategories: number, newCombos: number } | null>(null);
   const [pendingCategories, setPendingCategories] = useState<Category[] | null>(null);
   const [pendingCombos, setPendingCombos] = useState<CategoryCombo[] | null>(null);
-
-  useEffect(() => setCurrentPage(1), [searchTerm]);
 
   const filteredCategories = useMemo(() => {
       let filtered = categories;
@@ -108,8 +103,6 @@ const CategoryManagement: React.FC = () => {
       reorderCategories(newFiltered.map(c => c.id));
     }
   };
-
-  const paginatedCategories = filteredCategories.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const handleCreate = (e: React.FormEvent) => {
       e.preventDefault();
@@ -429,9 +422,9 @@ const CategoryManagement: React.FC = () => {
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={paginatedCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-              {paginatedCategories.length === 0 ? (
+        <SortableContext items={filteredCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredCategories.length === 0 ? (
                   <div className="col-span-full">
                       <EmptyState 
                           icon={Layers} 
@@ -445,7 +438,7 @@ const CategoryManagement: React.FC = () => {
                       />
                   </div>
               ) : (
-                  paginatedCategories.map(cat => (
+                  filteredCategories.map(cat => (
                     <SortableCategoryCard 
                         key={cat.id} 
                         category={cat} 

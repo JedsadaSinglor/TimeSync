@@ -123,9 +123,6 @@ export const TimesheetList: React.FC<TimesheetListProps> = ({
                                             <h4 className="text-lg font-black text-slate-800 dark:text-white leading-tight mt-1">{subCat.name}</h4>
                                         </div>
                                         <div className="flex flex-col items-end">
-                                            <div className="text-[10px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg uppercase tracking-tighter">
-                                                {log.startTime} - {log.endTime}
-                                            </div>
                                         </div>
                                     </div>
 

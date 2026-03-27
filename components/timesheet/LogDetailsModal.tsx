@@ -23,8 +23,6 @@ export const LogDetailsModal: React.FC<LogDetailsModalProps> = ({
     const [durationInput, setDurationInput] = useState<string>('00:00');
     const [count, setCount] = useState<number | undefined>(undefined);
     const [notes, setNotes] = useState<string>('');
-    const [startTime, setStartTime] = useState<string>('09:00');
-    const [endTime, setEndTime] = useState<string>('10:00');
 
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -72,8 +70,6 @@ export const LogDetailsModal: React.FC<LogDetailsModalProps> = ({
             
             setCount(log?.count || (initialIsQtyMode ? 1 : undefined));
             setNotes(log?.notes || '');
-            setStartTime(log?.startTime || '09:00');
-            setEndTime(log?.endTime || '10:00');
 
             setTimeout(() => {
                 inputRef.current?.focus();
@@ -119,9 +115,7 @@ export const LogDetailsModal: React.FC<LogDetailsModalProps> = ({
             subCategoryId: selectedSubCategory?.id === 'general' ? undefined : selectedSubCategory?.id,
             durationMinutes: finalDuration,
             count: count, // เสมอบันทึก Count ถ้ามีการกรอก
-            notes: notes.trim(),
-            startTime,
-            endTime
+            notes: notes.trim()
         });
     };
 

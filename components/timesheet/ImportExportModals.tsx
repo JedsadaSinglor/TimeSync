@@ -2,6 +2,16 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { FileSpreadsheet, Upload, Calendar, Clock, CheckCircle, AlertCircle, Check, Tag } from 'lucide-react';
 
+const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    // Split and use local constructor to avoid timezone shifts
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts.map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 interface ExportModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -32,7 +42,7 @@ export const ExportConfirmationModal: React.FC<ExportModalProps> = ({ isOpen, on
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6 space-y-3">
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Calendar size={14}/> Period</span>
-                        <span className="font-bold text-slate-700 dark:text-slate-200">{summary.startDate} - {summary.endDate}</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{formatDate(summary.startDate)} - {formatDate(summary.endDate)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Clock size={14}/> Total Hours</span>
@@ -85,7 +95,7 @@ export const ImportConfirmationModal: React.FC<ImportModalProps> = ({ isOpen, on
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6 space-y-3">
                      <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Calendar size={14}/> Date Range</span>
-                        <span className="font-bold text-slate-700 dark:text-slate-200">{summary.startDate} - {summary.endDate}</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{formatDate(summary.startDate)} - {formatDate(summary.endDate)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><CheckCircle size={14}/> Entries</span>

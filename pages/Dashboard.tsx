@@ -4,7 +4,7 @@ import { Sparkles, Filter, Layers, Loader2, Activity, Clock, Download, Target, C
 import { useApp } from '../contexts/AppContext';
 import { useToast } from '../contexts/ToastContext';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useDashboardStats, TimeRange } from '../hooks/useDashboardStats';
+import { useDashboardStats, TimeRange, toLocalISOString } from '../hooks/useDashboardStats';
 import { DashboardGrid } from '../components/dashboard/DashboardGrid';
 import { DEFAULT_WIDGETS } from '../constants';
 
@@ -199,15 +199,21 @@ const Dashboard: React.FC = () => {
               <div className="flex items-center gap-2 bg-[#f8f9fa] dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50">
                 <input 
                   type="date" 
-                  value={customDateRange.start.toISOString().split('T')[0]}
-                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))}
+                  value={toLocalISOString(customDateRange.start)}
+                  onChange={(e) => {
+                    const [y, m, d] = e.target.value.split('-').map(Number);
+                    if (!isNaN(y)) setCustomDateRange(prev => ({ ...prev, start: new Date(y, m - 1, d) }));
+                  }}
                   className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
                 />
                 <span className="text-slate-400 text-xs">-</span>
                 <input 
                   type="date" 
-                  value={customDateRange.end.toISOString().split('T')[0]}
-                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))}
+                  value={toLocalISOString(customDateRange.end)}
+                  onChange={(e) => {
+                    const [y, m, d] = e.target.value.split('-').map(Number);
+                    if (!isNaN(y)) setCustomDateRange(prev => ({ ...prev, end: new Date(y, m - 1, d) }));
+                  }}
                   className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
                 />
               </div>
